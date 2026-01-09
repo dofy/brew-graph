@@ -1,41 +1,56 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = "light" | "dark" | "system";
+type PageWidth = "full" | "contained";
 
 interface SettingsState {
   theme: Theme;
-  sidebarOpen: boolean;
-  
+  pageWidth: PageWidth;
+
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
-  setSidebarOpen: (open: boolean) => void;
-  toggleSidebar: () => void;
+  setPageWidth: (width: PageWidth) => void;
+  togglePageWidth: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
-      theme: 'system',
-      sidebarOpen: true,
+      theme: "system",
+      pageWidth: "contained",
 
       setTheme: (theme) => {
         set({ theme });
         applyTheme(theme);
       },
-      
+
       toggleTheme: () => {
         const { theme } = get();
-        const newTheme = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light';
+        const newTheme =
+          theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
         set({ theme: newTheme });
         applyTheme(newTheme);
       },
 
-      setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
-      toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      setPageWidth: (pageWidth) => set({ pageWidth }),
+      togglePageWidth: () =>
+        set((state) => ({
+          pageWidth: state.pageWidth === "full" ? "contained" : "full",
+        })),
     }),
     {
-      name: 'brew-graph-settings',
+      name: "brew-graph-settings",
+      version: 1,
+      migrate: (persistedState, version) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const state = persistedState as any;
+        if (version === 0) {
+          // Remove deprecated sidebarOpen field
+          delete state.sidebarOpen;
+        }
+        return state;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyTheme(state.theme);

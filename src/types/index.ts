@@ -110,14 +110,14 @@ export interface Cask {
 export interface Favorite {
   id?: number;
   name: string;
-  type: 'formula' | 'cask';
+  type: "formula" | "cask";
   createdAt: number;
 }
 
 export interface Tag {
   id?: number;
   name: string;
-  type: 'formula' | 'cask';
+  type: "formula" | "cask";
   tag: string;
   createdAt: number;
 }
@@ -127,15 +127,10 @@ export interface SyncMeta {
   value: unknown;
 }
 
-export type PackageType = 'formula' | 'cask';
-
-export interface BreadcrumbItem {
-  name: string;
-  type: PackageType;
-}
+export type PackageType = "formula" | "cask";
 
 export interface SearchFilters {
-  type: PackageType | 'all';
+  type: PackageType | "all";
   tag: string | null;
   favoritesOnly: boolean;
 }

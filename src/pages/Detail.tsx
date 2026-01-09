@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from "react-router-dom";
 import {
   Package,
   Box,
@@ -10,78 +10,68 @@ import {
   Tag,
   Plus,
   X,
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Input } from '@/components/ui/input';
+  Ban,
+  Hash,
+  Scale,
+  FolderTree,
+  Lock,
+  Activity,
+  FileText,
+  Info,
+  Download,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { CopyButton } from '@/components/common/CopyButton';
-import { Breadcrumbs } from '@/components/common/Breadcrumbs';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useFormula, useCask } from '@/hooks/usePackages';
-import { useFavoriteStore } from '@/stores/useFavoriteStore';
-import { useSearchStore } from '@/stores/useSearchStore';
-import type { PackageType, Formula, Cask } from '@/types';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
+} from "@/components/ui/popover";
+import { CopyButton } from "@/components/common/CopyButton";
+import { TagDialog } from "@/components/common/TagDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useFormula, useCask } from "@/hooks/usePackages";
+import { useFavoriteStore } from "@/stores/useFavoriteStore";
+import { useDetailHotkeys } from "@/hooks/useDetailHotkeys";
+import { useSEO } from "@/hooks/useSEO";
+import type { PackageType, Formula, Cask } from "@/types";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 function DependencyLink({
   name,
-  currentType,
+  targetType,
 }: {
   name: string;
-  currentType: PackageType;
+  targetType: PackageType;
 }) {
-  const { pushBreadcrumb, breadcrumbs } = useSearchStore();
-  const navigate = useNavigate();
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const currentName = breadcrumbs.length > 0 
-      ? breadcrumbs[breadcrumbs.length - 1].name 
-      : null;
-    
-    if (currentName) {
-      pushBreadcrumb({ name: currentName, type: currentType });
-    }
-    navigate(`/formula/${name}`);
-  };
-
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-auto py-1 px-2"
-      onClick={handleClick}
-    >
-      <Package className="h-3 w-3 mr-1" />
-      {name}
-    </Button>
+    <Link to={`/${targetType}/${name}`}>
+      <Button variant="ghost" size="sm" className="h-auto py-1 px-2">
+        {targetType === "formula" ? (
+          <Package className="h-3 w-3 mr-1" />
+        ) : (
+          <Box className="h-3 w-3 mr-1" />
+        )}
+        {name}
+      </Button>
+    </Link>
   );
 }
 
-function TagManager({
-  name,
-  type,
-}: {
-  name: string;
-  type: PackageType;
-}) {
+function TagManager({ name, type }: { name: string; type: PackageType }) {
   const { getTags, addTag, removeTag, allTags } = useFavoriteStore();
-  const [newTag, setNewTag] = useState('');
+  const [newTag, setNewTag] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const tags = getTags(name, type);
 
   const handleAddTag = () => {
     if (newTag.trim()) {
       addTag(name, type, newTag.trim());
-      setNewTag('');
+      setNewTag("");
     }
   };
 
@@ -114,7 +104,7 @@ function TagManager({
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       handleAddTag();
                     }
                   }}
@@ -126,7 +116,9 @@ function TagManager({
               </div>
               {allTags.size > 0 && (
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Existing tags:</p>
+                  <p className="text-xs text-muted-foreground">
+                    Existing tags:
+                  </p>
                   <div className="flex flex-wrap gap-1">
                     {Array.from(allTags)
                       .filter((t) => !tags.includes(t))
@@ -152,11 +144,67 @@ function TagManager({
   );
 }
 
+function StatusBadges({
+  deprecated,
+  disabled,
+  deprecationReason,
+  disableReason,
+}: {
+  deprecated: boolean;
+  disabled: boolean;
+  deprecationReason?: string | null;
+  disableReason?: string | null;
+}) {
+  if (!deprecated && !disabled) return null;
+
+  return (
+    <div className="space-y-2">
+      {deprecated && (
+        <div className="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-yellow-600 dark:text-yellow-400">
+              Deprecated
+            </p>
+            {deprecationReason && (
+              <p className="text-sm text-muted-foreground">
+                {deprecationReason}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      {disabled && (
+        <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+          <Ban className="h-5 w-5 text-destructive flex-shrink-0" />
+          <div>
+            <p className="font-medium text-destructive">Disabled</p>
+            {disableReason && (
+              <p className="text-sm text-muted-foreground">{disableReason}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormulaDetail({ formula }: { formula: Formula }) {
-  const { isFavorite, toggleFavorite } = useFavoriteStore();
-  const { pushBreadcrumb, breadcrumbs } = useSearchStore();
-  const favorite = isFavorite(formula.name, 'formula');
+  const { toggleFavorite } = useFavoriteStore();
   const installCommand = `brew install ${formula.name}`;
+
+  useSEO({
+    title: `${formula.name} (Formula)`,
+    description:
+      formula.desc || `Install ${formula.name} via Homebrew: ${installCommand}`,
+  });
+
+  const { tagDialogOpen, setTagDialogOpen, favorite } = useDetailHotkeys({
+    name: formula.name,
+    type: "formula",
+    homepage: formula.homepage,
+    installCommand,
+  });
 
   const allDependencies = [
     ...formula.dependencies,
@@ -166,25 +214,26 @@ function FormulaDetail({ formula }: { formula: Formula }) {
     ...formula.optional_dependencies,
   ];
 
-  // Add to breadcrumbs on first load if coming from another package
-  useState(() => {
-    if (breadcrumbs.length > 0) {
-      const last = breadcrumbs[breadcrumbs.length - 1];
-      if (last.name !== formula.name) {
-        pushBreadcrumb({ name: formula.name, type: 'formula' });
-      }
-    }
-  });
-
   return (
     <div className="space-y-6">
-      <Breadcrumbs />
-
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Package className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
           <div>
-            <h1 className="text-2xl font-bold">{formula.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold">{formula.name}</h1>
+              {formula.deprecated && (
+                <Badge
+                  variant="outline"
+                  className="text-yellow-600 border-yellow-600"
+                >
+                  Deprecated
+                </Badge>
+              )}
+              {formula.disabled && (
+                <Badge variant="destructive">Disabled</Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">{formula.full_name}</p>
           </div>
         </div>
@@ -192,17 +241,22 @@ function FormulaDetail({ formula }: { formula: Formula }) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => toggleFavorite(formula.name, 'formula')}
+            onClick={() => toggleFavorite(formula.name, "formula")}
+            title="Favorite (F)"
           >
             <Heart
               className={cn(
-                'h-4 w-4',
-                favorite ? 'fill-red-500 text-red-500' : ''
+                "h-4 w-4",
+                favorite ? "fill-red-500 text-red-500" : ""
               )}
             />
           </Button>
-          <Button variant="outline" asChild>
-            <a href={formula.homepage} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" asChild title="Open homepage (O)">
+            <a
+              href={formula.homepage}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <ExternalLink className="h-4 w-4 mr-2" />
               Homepage
             </a>
@@ -210,19 +264,18 @@ function FormulaDetail({ formula }: { formula: Formula }) {
         </div>
       </div>
 
-      {(formula.deprecated || formula.disabled) && (
-        <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <div>
-            <p className="font-medium text-destructive">
-              {formula.deprecated ? 'Deprecated' : 'Disabled'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {formula.deprecation_reason || formula.disable_reason || 'No reason provided'}
-            </p>
-          </div>
-        </div>
-      )}
+      <TagDialog
+        pkg={{ name: formula.name, type: "formula" }}
+        open={tagDialogOpen}
+        onOpenChange={setTagDialogOpen}
+      />
+
+      <StatusBadges
+        deprecated={formula.deprecated}
+        disabled={formula.disabled}
+        deprecationReason={formula.deprecation_reason}
+        disableReason={formula.disable_reason}
+      />
 
       <Card>
         <CardHeader>
@@ -233,7 +286,7 @@ function FormulaDetail({ formula }: { formula: Formula }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 p-3 bg-muted rounded-lg font-mono text-sm">
-            <code className="flex-1">{installCommand}</code>
+            <code className="flex-1 break-all">{installCommand}</code>
             <CopyButton text={installCommand} />
           </div>
         </CardContent>
@@ -242,27 +295,64 @@ function FormulaDetail({ formula }: { formula: Formula }) {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Details</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Details
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Version</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Hash className="h-4 w-4" />
+                Version
+              </span>
               <Badge variant="secondary">{formula.versions.stable}</Badge>
             </div>
             <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">License</span>
-              <span>{formula.license || 'N/A'}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Scale className="h-4 w-4" />
+                License
+              </span>
+              <span>{formula.license || "N/A"}</span>
             </div>
             <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tap</span>
-              <span>{formula.tap}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <FolderTree className="h-4 w-4" />
+                Tap
+              </span>
+              <span className="font-mono text-sm">{formula.tap}</span>
             </div>
             <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Keg Only</span>
-              <span>{formula.keg_only ? 'Yes' : 'No'}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Keg Only
+              </span>
+              <span>{formula.keg_only ? "Yes" : "No"}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Status
+              </span>
+              <Badge
+                variant={
+                  formula.disabled
+                    ? "destructive"
+                    : formula.deprecated
+                    ? "outline"
+                    : "secondary"
+                }
+              >
+                {formula.disabled
+                  ? "Disabled"
+                  : formula.deprecated
+                  ? "Deprecated"
+                  : "Active"}
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -283,10 +373,13 @@ function FormulaDetail({ formula }: { formula: Formula }) {
       {formula.desc && (
         <Card>
           <CardHeader>
-            <CardTitle>Description</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Description
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{formula.desc}</p>
+            <p className="leading-relaxed">{formula.desc}</p>
           </CardContent>
         </Card>
       )}
@@ -306,7 +399,11 @@ function FormulaDetail({ formula }: { formula: Formula }) {
                   <h4 className="text-sm font-medium mb-2">Runtime</h4>
                   <div className="flex flex-wrap gap-1">
                     {formula.dependencies.map((dep) => (
-                      <DependencyLink key={dep} name={dep} currentType="formula" />
+                      <DependencyLink
+                        key={dep}
+                        name={dep}
+                        targetType="formula"
+                      />
                     ))}
                   </div>
                 </div>
@@ -316,7 +413,11 @@ function FormulaDetail({ formula }: { formula: Formula }) {
                   <h4 className="text-sm font-medium mb-2">Build</h4>
                   <div className="flex flex-wrap gap-1">
                     {formula.build_dependencies.map((dep) => (
-                      <DependencyLink key={dep} name={dep} currentType="formula" />
+                      <DependencyLink
+                        key={dep}
+                        name={dep}
+                        targetType="formula"
+                      />
                     ))}
                   </div>
                 </div>
@@ -326,7 +427,11 @@ function FormulaDetail({ formula }: { formula: Formula }) {
                   <h4 className="text-sm font-medium mb-2">Optional</h4>
                   <div className="flex flex-wrap gap-1">
                     {formula.optional_dependencies.map((dep) => (
-                      <DependencyLink key={dep} name={dep} currentType="formula" />
+                      <DependencyLink
+                        key={dep}
+                        name={dep}
+                        targetType="formula"
+                      />
                     ))}
                   </div>
                 </div>
@@ -345,7 +450,7 @@ function FormulaDetail({ formula }: { formula: Formula }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg">
+            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto">
               {formula.caveats}
             </pre>
           </CardContent>
@@ -356,9 +461,21 @@ function FormulaDetail({ formula }: { formula: Formula }) {
 }
 
 function CaskDetail({ cask }: { cask: Cask }) {
-  const { isFavorite, toggleFavorite } = useFavoriteStore();
-  const favorite = isFavorite(cask.token, 'cask');
+  const { toggleFavorite } = useFavoriteStore();
   const installCommand = `brew install --cask ${cask.token}`;
+
+  useSEO({
+    title: `${cask.token} (Cask)`,
+    description:
+      cask.desc || `Install ${cask.token} via Homebrew: ${installCommand}`,
+  });
+
+  const { tagDialogOpen, setTagDialogOpen, favorite } = useDetailHotkeys({
+    name: cask.token,
+    type: "cask",
+    homepage: cask.homepage,
+    installCommand,
+  });
 
   const allDependencies = [
     ...(cask.depends_on?.formula || []),
@@ -367,30 +484,40 @@ function CaskDetail({ cask }: { cask: Cask }) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs />
-
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Box className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
           <div>
-            <h1 className="text-2xl font-bold">{cask.token}</h1>
-            <p className="text-muted-foreground">{cask.name.join(', ')}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold">{cask.token}</h1>
+              {cask.deprecated && (
+                <Badge
+                  variant="outline"
+                  className="text-yellow-600 border-yellow-600"
+                >
+                  Deprecated
+                </Badge>
+              )}
+              {cask.disabled && <Badge variant="destructive">Disabled</Badge>}
+            </div>
+            <p className="text-muted-foreground">{cask.name.join(", ")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="icon"
-            onClick={() => toggleFavorite(cask.token, 'cask')}
+            onClick={() => toggleFavorite(cask.token, "cask")}
+            title="Favorite (F)"
           >
             <Heart
               className={cn(
-                'h-4 w-4',
-                favorite ? 'fill-red-500 text-red-500' : ''
+                "h-4 w-4",
+                favorite ? "fill-red-500 text-red-500" : ""
               )}
             />
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild title="Open homepage (O)">
             <a href={cask.homepage} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-2" />
               Homepage
@@ -399,19 +526,18 @@ function CaskDetail({ cask }: { cask: Cask }) {
         </div>
       </div>
 
-      {(cask.deprecated || cask.disabled) && (
-        <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <div>
-            <p className="font-medium text-destructive">
-              {cask.deprecated ? 'Deprecated' : 'Disabled'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {cask.deprecation_reason || cask.disable_reason || 'No reason provided'}
-            </p>
-          </div>
-        </div>
-      )}
+      <TagDialog
+        pkg={{ name: cask.token, type: "cask" }}
+        open={tagDialogOpen}
+        onOpenChange={setTagDialogOpen}
+      />
+
+      <StatusBadges
+        deprecated={cask.deprecated}
+        disabled={cask.disabled}
+        deprecationReason={cask.deprecation_reason}
+        disableReason={cask.disable_reason}
+      />
 
       <Card>
         <CardHeader>
@@ -422,7 +548,7 @@ function CaskDetail({ cask }: { cask: Cask }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 p-3 bg-muted rounded-lg font-mono text-sm">
-            <code className="flex-1">{installCommand}</code>
+            <code className="flex-1 break-all">{installCommand}</code>
             <CopyButton text={installCommand} />
           </div>
         </CardContent>
@@ -431,22 +557,56 @@ function CaskDetail({ cask }: { cask: Cask }) {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Details</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5" />
+              Details
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Version</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Hash className="h-4 w-4" />
+                Version
+              </span>
               <Badge variant="secondary">{cask.version}</Badge>
             </div>
             <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tap</span>
-              <span>{cask.tap}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <FolderTree className="h-4 w-4" />
+                Tap
+              </span>
+              <span className="font-mono text-sm">{cask.tap}</span>
             </div>
             <Separator />
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Auto Updates</span>
-              <span>{cask.auto_updates ? 'Yes' : 'No'}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Auto Updates
+              </span>
+              <span>{cask.auto_updates ? "Yes" : "No"}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Status
+              </span>
+              <Badge
+                variant={
+                  cask.disabled
+                    ? "destructive"
+                    : cask.deprecated
+                    ? "outline"
+                    : "secondary"
+                }
+              >
+                {cask.disabled
+                  ? "Disabled"
+                  : cask.deprecated
+                  ? "Deprecated"
+                  : "Active"}
+              </Badge>
             </div>
           </CardContent>
         </Card>
@@ -467,10 +627,13 @@ function CaskDetail({ cask }: { cask: Cask }) {
       {cask.desc && (
         <Card>
           <CardHeader>
-            <CardTitle>Description</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Description
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p>{cask.desc}</p>
+            <p className="leading-relaxed">{cask.desc}</p>
           </CardContent>
         </Card>
       )}
@@ -486,15 +649,10 @@ function CaskDetail({ cask }: { cask: Cask }) {
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {cask.depends_on?.formula?.map((dep) => (
-                <DependencyLink key={dep} name={dep} currentType="cask" />
+                <DependencyLink key={dep} name={dep} targetType="formula" />
               ))}
               {cask.depends_on?.cask?.map((dep) => (
-                <Link key={dep} to={`/cask/${dep}`}>
-                  <Button variant="ghost" size="sm" className="h-auto py-1 px-2">
-                    <Box className="h-3 w-3 mr-1" />
-                    {dep}
-                  </Button>
-                </Link>
+                <DependencyLink key={dep} name={dep} targetType="cask" />
               ))}
             </div>
           </CardContent>
@@ -510,7 +668,7 @@ function CaskDetail({ cask }: { cask: Cask }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg">
+            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto">
               {cask.caveats}
             </pre>
           </CardContent>
@@ -522,14 +680,14 @@ function CaskDetail({ cask }: { cask: Cask }) {
 
 export function Detail() {
   const { type, name } = useParams<{ type: string; name: string }>();
-  const formula = useFormula(type === 'formula' ? name || '' : '');
-  const cask = useCask(type === 'cask' ? name || '' : '');
+  const formula = useFormula(type === "formula" ? name || "" : "");
+  const cask = useCask(type === "cask" ? name || "" : "");
 
   if (!type || !name) {
     return <div>Invalid route</div>;
   }
 
-  if (type === 'formula') {
+  if (type === "formula") {
     if (formula === undefined) {
       return <DetailSkeleton />;
     }
@@ -539,7 +697,7 @@ export function Detail() {
     return <FormulaDetail formula={formula} />;
   }
 
-  if (type === 'cask') {
+  if (type === "cask") {
     if (cask === undefined) {
       return <DetailSkeleton />;
     }
@@ -576,7 +734,7 @@ function NotFound({ name, type }: { name: string; type: string }) {
     <div className="text-center py-12">
       <h1 className="text-2xl font-bold mb-2">Package not found</h1>
       <p className="text-muted-foreground">
-        The {type} "{name}" could not be found.
+        The {type} &quot;{name}&quot; could not be found.
       </p>
       <Link to="/">
         <Button variant="link" className="mt-4">

@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Package, Box, Heart, ExternalLink } from 'lucide-react';
+import { useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { Package, Box, Heart, ExternalLink } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -8,42 +8,52 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
-import { Badge } from '@/components/ui/badge';
-import { useSearchStore } from '@/stores/useSearchStore';
-import { useFavoriteStore } from '@/stores/useFavoriteStore';
-import { useSearchPackages } from '@/hooks/usePackages';
+} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { useSearchStore } from "@/stores/useSearchStore";
+import { useFavoriteStore } from "@/stores/useFavoriteStore";
+import { useSearchPackages } from "@/hooks/usePackages";
 
 export function SearchDialog() {
   const navigate = useNavigate();
-  const { query, setQuery, isSearchOpen, setSearchOpen, clearBreadcrumbs } = useSearchStore();
+  const { query, setQuery, isSearchOpen, setSearchOpen, hideDeprecated } =
+    useSearchStore();
   const { isFavorite } = useFavoriteStore();
-  const results = useSearchPackages(query, 'all', null, false, 20);
+  const results = useSearchPackages(
+    query,
+    "all",
+    null,
+    false,
+    hideDeprecated,
+    20
+  );
 
-  const handleSelect = useCallback((name: string, type: 'formula' | 'cask') => {
-    clearBreadcrumbs();
-    setSearchOpen(false);
-    setQuery('');
-    navigate(`/${type}/${name}`);
-  }, [navigate, setSearchOpen, setQuery, clearBreadcrumbs]);
+  const handleSelect = useCallback(
+    (name: string, type: "formula" | "cask") => {
+      setSearchOpen(false);
+      setQuery("");
+      navigate(`/${type}/${name}`);
+    },
+    [navigate, setSearchOpen, setQuery]
+  );
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setSearchOpen(!isSearchOpen);
       }
-      if (e.key === '/' && !isSearchOpen) {
+      if (e.key === "/" && !isSearchOpen) {
         const target = e.target as HTMLElement;
-        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+        if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
           e.preventDefault();
           setSearchOpen(true);
         }
       }
     };
 
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, [isSearchOpen, setSearchOpen]);
 
   return (
@@ -55,7 +65,7 @@ export function SearchDialog() {
       />
       <CommandList>
         <CommandEmpty>
-          {query ? 'No packages found.' : 'Type to search packages...'}
+          {query ? "No packages found." : "Type to search packages..."}
         </CommandEmpty>
         {results && results.length > 0 && (
           <CommandGroup heading="Packages">
@@ -66,7 +76,7 @@ export function SearchDialog() {
                 onSelect={() => handleSelect(pkg.name, pkg.type)}
                 className="flex items-center gap-2"
               >
-                {pkg.type === 'formula' ? (
+                {pkg.type === "formula" ? (
                   <Package className="h-4 w-4 text-muted-foreground" />
                 ) : (
                   <Box className="h-4 w-4 text-muted-foreground" />

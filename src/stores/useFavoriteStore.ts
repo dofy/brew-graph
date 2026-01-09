@@ -7,17 +7,20 @@ interface FavoriteState {
   tags: Map<string, Set<string>>;
   allTags: Set<string>;
   isLoading: boolean;
-  
+
   loadFromDB: () => Promise<void>;
-  
+
   isFavorite: (name: string, type: PackageType) => boolean;
   toggleFavorite: (name: string, type: PackageType) => Promise<void>;
-  
+
   getTags: (name: string, type: PackageType) => string[];
   addTag: (name: string, type: PackageType, tag: string) => Promise<void>;
   removeTag: (name: string, type: PackageType, tag: string) => Promise<void>;
-  
+
   getItemsWithTag: (tag: string) => { name: string; type: PackageType }[];
+  getTagCount: (tag: string) => number;
+  renameTag: (oldTag: string, newTag: string) => Promise<void>;
+  deleteTag: (tag: string) => Promise<void>;
 }
 
 const getKey = (name: string, type: PackageType) => `${type}:${name}`;
@@ -151,14 +154,91 @@ export const useFavoriteStore = create<FavoriteState>((set, get) => ({
   getItemsWithTag: (tag) => {
     const { tags } = get();
     const items: { name: string; type: PackageType }[] = [];
-    
+
     tags.forEach((tagSet, key) => {
       if (tagSet.has(tag)) {
-        const [type, name] = key.split(':') as [PackageType, string];
+        const [type, name] = key.split(":") as [PackageType, string];
         items.push({ name, type });
       }
     });
-    
+
     return items;
+  },
+
+  getTagCount: (tag) => {
+    const { tags } = get();
+    let count = 0;
+    tags.forEach((tagSet) => {
+      if (tagSet.has(tag)) count++;
+    });
+    return count;
+  },
+
+  renameTag: async (oldTag, newTag) => {
+    if (oldTag === newTag) return;
+
+    const { tags, allTags } = get();
+
+    // Get all items with the old tag
+    const itemsToUpdate = await db.tags.where("tag").equals(oldTag).toArray();
+
+    // Update each item in the database
+    await db.transaction("rw", db.tags, async () => {
+      for (const item of itemsToUpdate) {
+        await db.tags
+          .where("[name+type+tag]")
+          .equals([item.name, item.type, oldTag])
+          .delete();
+        await db.tags.add({
+          name: item.name,
+          type: item.type,
+          tag: newTag,
+          createdAt: Date.now(),
+        });
+      }
+    });
+
+    // Update in-memory state
+    const newTags = new Map(tags);
+    newTags.forEach((tagSet, key) => {
+      if (tagSet.has(oldTag)) {
+        const newTagSet = new Set(tagSet);
+        newTagSet.delete(oldTag);
+        newTagSet.add(newTag);
+        newTags.set(key, newTagSet);
+      }
+    });
+
+    const newAllTags = new Set(allTags);
+    newAllTags.delete(oldTag);
+    newAllTags.add(newTag);
+
+    set({ tags: newTags, allTags: newAllTags });
+  },
+
+  deleteTag: async (tag) => {
+    const { tags, allTags } = get();
+
+    // Delete all entries with this tag from the database
+    await db.tags.where("tag").equals(tag).delete();
+
+    // Update in-memory state
+    const newTags = new Map(tags);
+    newTags.forEach((tagSet, key) => {
+      if (tagSet.has(tag)) {
+        const newTagSet = new Set(tagSet);
+        newTagSet.delete(tag);
+        if (newTagSet.size === 0) {
+          newTags.delete(key);
+        } else {
+          newTags.set(key, newTagSet);
+        }
+      }
+    });
+
+    const newAllTags = new Set(allTags);
+    newAllTags.delete(tag);
+
+    set({ tags: newTags, allTags: newAllTags });
   },
 }));
