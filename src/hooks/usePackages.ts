@@ -48,6 +48,41 @@ interface ScoredPackage {
   score: number;
 }
 
+// Parse search query for special syntax
+interface ParsedQuery {
+  text: string; // Plain text search
+  tags: string[]; // #tag searches
+  favoritesOnly: boolean; // * for favorites
+}
+
+function parseSearchQuery(query: string): ParsedQuery {
+  const result: ParsedQuery = {
+    text: "",
+    tags: [],
+    favoritesOnly: false,
+  };
+
+  // Match #tag patterns
+  const tagMatches = query.match(/#(\S+)/g);
+  if (tagMatches) {
+    result.tags = tagMatches.map((t) => t.slice(1).toLowerCase());
+  }
+
+  // Check for * (favorites)
+  if (query.includes("*")) {
+    result.favoritesOnly = true;
+  }
+
+  // Extract plain text (remove special tokens)
+  result.text = query
+    .replace(/#\S+/g, "") // Remove #tag
+    .replace(/\*/g, "") // Remove *
+    .trim()
+    .toLowerCase();
+
+  return result;
+}
+
 function calculateMatchScore(
   query: string,
   name: string,
@@ -113,11 +148,28 @@ export function useSearchPackages(
   limit = 30,
   offset = 0
 ) {
-  const { favorites, tags } = useFavoriteStore();
+  // Get store state with selectors for proper reactivity
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const userTags = useFavoriteStore((state) => state.tags);
+
+  // Parse query for special syntax (#tag, *)
+  const parsed = parseSearchQuery(query);
+  const searchText = parsed.text;
+  const searchTags = parsed.tags;
+  const searchFavoritesOnly = parsed.favoritesOnly;
+
+  // Serialize favorites and tags size for dependency tracking
+  const favoritesSize = favorites.size;
+  const tagsSize = userTags.size;
 
   return useLiveQuery(async () => {
-    const lowerQuery = query.toLowerCase().trim();
+    const lowerQuery = searchText;
     const scored: ScoredPackage[] = [];
+
+    // Combine URL tag filter with query tags
+    const requiredTags = tag ? [tag, ...searchTags] : searchTags;
+    // Combine URL favorites filter with query favorites
+    const requireFavorites = favoritesOnly || searchFavoritesOnly;
 
     const matchesFilters = (
       name: string,
@@ -125,11 +177,24 @@ export function useSearchPackages(
       deprecated: boolean,
       disabled: boolean
     ) => {
-      if (favoritesOnly && !favorites.has(`${pkgType}:${name}`)) return false;
-      if (tag) {
-        const itemTags = tags.get(`${pkgType}:${name}`);
-        if (!itemTags?.has(tag)) return false;
+      // Check favorites
+      if (requireFavorites && !favorites.has(`${pkgType}:${name}`))
+        return false;
+
+      // Check all required tags
+      if (requiredTags.length > 0) {
+        const itemTags = userTags.get(`${pkgType}:${name}`);
+        for (const reqTag of requiredTags) {
+          // Check if any tag contains the search term (partial match)
+          const hasTag = itemTags
+            ? Array.from(itemTags).some((t) =>
+                t.toLowerCase().includes(reqTag.toLowerCase())
+              )
+            : false;
+          if (!hasTag) return false;
+        }
       }
+
       if (hideDeprecated && (deprecated || disabled)) return false;
       return true;
     };
@@ -191,13 +256,17 @@ export function useSearchPackages(
 
     return scored.slice(offset, offset + limit).map((s) => s.pkg);
   }, [
-    query,
+    searchText,
+    searchTags,
+    searchFavoritesOnly,
     type,
     tag,
     favoritesOnly,
     hideDeprecated,
     favorites,
-    tags,
+    userTags,
+    favoritesSize,
+    tagsSize,
     limit,
     offset,
   ]);
@@ -209,11 +278,27 @@ export function useTotalPackageCount(
   tag: string | null,
   hideDeprecated: boolean
 ) {
-  const { favorites, tags } = useFavoriteStore();
+  // Get store state with selectors for proper reactivity
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const userTags = useFavoriteStore((state) => state.tags);
+
+  // Parse query for special syntax (#tag, *)
+  const parsed = parseSearchQuery(query);
+  const searchText = parsed.text;
+  const searchTags = parsed.tags;
+  const searchFavoritesOnly = parsed.favoritesOnly;
+
+  // Serialize for dependency tracking
+  const favoritesSize = favorites.size;
+  const tagsSize = userTags.size;
 
   return useLiveQuery(async () => {
-    const lowerQuery = query.toLowerCase().trim();
+    const lowerQuery = searchText;
     let count = 0;
+
+    // Combine URL tag filter with query tags
+    const requiredTags = tag ? [tag, ...searchTags] : searchTags;
+    const requireFavorites = searchFavoritesOnly;
 
     const matchesFilters = (
       name: string,
@@ -221,10 +306,23 @@ export function useTotalPackageCount(
       deprecated: boolean,
       disabled: boolean
     ) => {
-      if (tag) {
-        const itemTags = tags.get(`${pkgType}:${name}`);
-        if (!itemTags?.has(tag)) return false;
+      // Check favorites
+      if (requireFavorites && !favorites.has(`${pkgType}:${name}`))
+        return false;
+
+      // Check all required tags
+      if (requiredTags.length > 0) {
+        const itemTags = userTags.get(`${pkgType}:${name}`);
+        for (const reqTag of requiredTags) {
+          const hasTag = itemTags
+            ? Array.from(itemTags).some((t) =>
+                t.toLowerCase().includes(reqTag.toLowerCase())
+              )
+            : false;
+          if (!hasTag) return false;
+        }
       }
+
       if (hideDeprecated && (deprecated || disabled)) return false;
       return true;
     };
@@ -273,7 +371,18 @@ export function useTotalPackageCount(
     }
 
     return count;
-  }, [query, type, tag, hideDeprecated, favorites, tags]);
+  }, [
+    searchText,
+    searchTags,
+    searchFavoritesOnly,
+    type,
+    tag,
+    hideDeprecated,
+    favorites,
+    userTags,
+    favoritesSize,
+    tagsSize,
+  ]);
 }
 
 export function useFormula(name: string) {

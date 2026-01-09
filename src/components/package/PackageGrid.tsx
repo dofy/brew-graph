@@ -57,8 +57,11 @@ export const PackageGrid = forwardRef<HTMLDivElement, PackageGridProps>(
         <div ref={ref} className="text-center py-12">
           <p className="text-muted-foreground">No packages found</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Use arrow keys or hjkl to navigate, Enter to open, F to favorite, T
-            to tag
+            Search tips: use{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">#tag</code>{" "}
+            to filter by tag,{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">*</code> for
+            favorites only
           </p>
         </div>
       );
@@ -129,25 +132,25 @@ function PackageCard({
     >
       <Card
         className={cn(
-          "h-full transition-all group",
+          "h-full transition-all group gap-1 py-2.5",
           isSelected
             ? "ring-2 ring-primary border-primary"
             : "hover:border-primary/50"
         )}
       >
-        <CardHeader className="px-3 pt-2 pb-0">
+        <CardHeader className="px-3 py-0">
           <div className="flex items-start justify-between gap-1">
             <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
               {pkg.type === "formula" ? (
-                <Package className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
               ) : (
-                <Box className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <Box className="h-4 w-4 text-muted-foreground shrink-0" />
               )}
               <CardTitle className="text-sm font-medium truncate min-w-0">
                 {pkg.name}
               </CardTitle>
             </div>
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center shrink-0">
               {(pkg.deprecated || pkg.disabled) && (
                 <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
               )}
@@ -179,12 +182,12 @@ function PackageCard({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="px-3 pt-1 pb-2">
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+        <CardContent className="px-3 py-0">
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-2.5">
             {pkg.desc || "No description available"}
           </p>
 
-          <div className="flex items-center gap-1 flex-wrap mb-1">
+          <div className="flex items-center gap-1 flex-wrap mb-1.5">
             <TypedBadge type={pkg.type} className="text-[10px] px-1.5 py-0">
               {pkg.type}
             </TypedBadge>

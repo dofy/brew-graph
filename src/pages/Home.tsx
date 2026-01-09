@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
-  Search,
   X,
   EyeOff,
   ChevronLeft,
@@ -9,7 +8,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +23,6 @@ import {
 import { useCardNavigation } from "@/hooks/useCardNavigation";
 import { useSEO } from "@/hooks/useSEO";
 import type { PackageType } from "@/types";
-import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 30;
 
@@ -108,10 +105,6 @@ export function Home() {
     [searchParams, navigate]
   );
 
-  const handleQueryChange = (value: string) => {
-    updateSearchParams({ q: value || null, page: null });
-  };
-
   const handleTypeChange = (value: string) => {
     updateSearchParams({ type: value === "all" ? null : value, page: null });
   };
@@ -136,89 +129,68 @@ export function Home() {
   const hasNext = page < totalPages;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search packages... (Press / to focus)"
-              value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {query && (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Tabs value={type} onValueChange={handleTypeChange}>
+          <TabsList>
+            <TabsTrigger value="all" title="All packages (1)">
+              All {counts && `(${counts.total.toLocaleString()})`}
+            </TabsTrigger>
+            <TabsTrigger value="formula" title="Formulae only (2)">
+              Formulae {counts && `(${counts.formulaeCount.toLocaleString()})`}
+            </TabsTrigger>
+            <TabsTrigger value="cask" title="Casks only (3)">
+              Casks {counts && `(${counts.caskCount.toLocaleString()})`}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <Button
+          variant={hideDeprecated ? "default" : "outline"}
+          size="sm"
+          onClick={() => setHideDeprecated(!hideDeprecated)}
+          title={
+            hideDeprecated
+              ? "Show deprecated packages (X)"
+              : "Hide deprecated packages (X)"
+          }
+          className="gap-1.5"
+        >
+          <EyeOff className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">
+            {hideDeprecated ? "Hiding deprecated" : "Show all"}
+          </span>
+        </Button>
+      </div>
+
+      {/* Active filters display */}
+      {(tag || query) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {query && (
+            <Badge variant="secondary" className="gap-1">
+              Search: {query}
               <button
                 onClick={clearQuery}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="ml-1 hover:text-destructive"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Tabs value={type} onValueChange={handleTypeChange}>
-              <TabsList>
-                <TabsTrigger value="all" title="All packages (1)">
-                  All {counts && `(${counts.total.toLocaleString()})`}
-                </TabsTrigger>
-                <TabsTrigger value="formula" title="Formulae only (2)">
-                  Formulae{" "}
-                  {counts && `(${counts.formulaeCount.toLocaleString()})`}
-                </TabsTrigger>
-                <TabsTrigger value="cask" title="Casks only (3)">
-                  Casks {counts && `(${counts.caskCount.toLocaleString()})`}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setHideDeprecated(!hideDeprecated)}
-              title={
-                hideDeprecated
-                  ? "Show deprecated packages (X)"
-                  : "Hide deprecated packages (X)"
-              }
-              className={cn(
-                hideDeprecated &&
-                  "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-              )}
-            >
-              <EyeOff className="h-4 w-4" />
-            </Button>
-          </div>
+            </Badge>
+          )}
+          {tag && (
+            <Badge variant="secondary" className="gap-1">
+              Tag: {tag}
+              <button
+                onClick={clearTag}
+                className="ml-1 hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
         </div>
-
-        {(tag || query) && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {query && (
-              <Badge variant="secondary" className="gap-1">
-                Search: {query}
-                <button
-                  onClick={clearQuery}
-                  className="ml-1 hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {tag && (
-              <Badge variant="secondary" className="gap-1">
-                Tag: {tag}
-                <button
-                  onClick={clearTag}
-                  className="ml-1 hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       <PackageGrid
         ref={containerRef}

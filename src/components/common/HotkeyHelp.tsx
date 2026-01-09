@@ -25,6 +25,8 @@ const shortcuts: { category: string; items: ShortcutItem[] }[] = [
       { keys: ["⌘", "K"], separator: "+", description: "Open search" },
       { keys: ["/"], description: "Focus search" },
       { keys: ["Esc"], description: "Close dialog / Go home" },
+      { keys: ["#tag"], description: "Filter by tag" },
+      { keys: ["*"], description: "Show favorites only" },
     ],
   },
   {
@@ -102,7 +104,7 @@ export function HotkeyHelp() {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[85vh] overflow-hidden flex flex-col gap-0 p-0">
-        <DialogHeader className="flex-shrink-0 p-4 pb-2">
+        <DialogHeader className="shrink-0 p-4 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Keyboard className="h-5 w-5" />
             Keyboard Shortcuts
@@ -122,7 +124,7 @@ export function HotkeyHelp() {
                     <span className="text-muted-foreground">
                       {item.description}
                     </span>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       {item.keys.map((key, i) => (
                         <span key={i} className="flex items-center gap-1">
                           {i > 0 && item.separator && (

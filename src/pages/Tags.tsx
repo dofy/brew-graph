@@ -48,10 +48,10 @@ export function Tags() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Hash className="h-4 w-4 text-violet-500 flex-shrink-0" />
+                        <Hash className="h-4 w-4 text-violet-500 shrink-0" />
                         <span className="font-medium truncate">{tag}</span>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         <Badge variant="secondary">{count}</Badge>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </div>

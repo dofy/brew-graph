@@ -161,7 +161,7 @@ function StatusBadges({
     <div className="space-y-2">
       {deprecated && (
         <div className="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
           <div>
             <p className="font-medium text-yellow-600 dark:text-yellow-400">
               Deprecated
@@ -176,7 +176,7 @@ function StatusBadges({
       )}
       {disabled && (
         <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <Ban className="h-5 w-5 text-destructive flex-shrink-0" />
+          <Ban className="h-5 w-5 text-destructive shrink-0" />
           <div>
             <p className="font-medium text-destructive">Disabled</p>
             {disableReason && (
@@ -218,7 +218,7 @@ function FormulaDetail({ formula }: { formula: Formula }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Package className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
+          <Package className="h-8 w-8 text-primary shrink-0 mt-1" />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold">{formula.name}</h1>
@@ -486,7 +486,7 @@ function CaskDetail({ cask }: { cask: Cask }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Box className="h-8 w-8 text-primary flex-shrink-0 mt-1" />
+          <Box className="h-8 w-8 text-primary shrink-0 mt-1" />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold">{cask.token}</h1>

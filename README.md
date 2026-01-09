@@ -2,6 +2,7 @@
 
 🍺 A modern web application to search, explore and manage Homebrew packages.
 
+![Version](https://img.shields.io/github/package-json/v/sevenyu/brew-graph?style=flat&color=blue)
 ![Homebrew](https://img.shields.io/badge/Homebrew-FBB040?style=flat&logo=homebrew&logoColor=black)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript&logoColor=white)
@@ -18,6 +19,16 @@
 - ⌨️ **Full Keyboard Support** - Navigate entirely with keyboard shortcuts
 - 🌓 **Dark Mode** - Light, dark, and system theme support
 - 📱 **Responsive Design** - Works on desktop and mobile devices
+
+## 🔍 Search Syntax
+
+| Syntax   | Description                    | Example       |
+| -------- | ------------------------------ | ------------- |
+| `text`   | Search by name and description | `react`       |
+| `#tag`   | Filter by tag                  | `#frontend`   |
+| `*`      | Show only favorites            | `*`           |
+| Combined | Combine multiple filters       | `react #tool` |
+| Combined | Search favorites with text     | `* node`      |
 
 ## ⌨️ Keyboard Shortcuts
 

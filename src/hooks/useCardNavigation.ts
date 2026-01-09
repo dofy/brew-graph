@@ -159,19 +159,24 @@ export function useCardNavigation({
   );
 
   // Enter: open selected package
-  useHotkeys(
-    "enter",
-    (e) => {
-      if (isInputFocused() || isSearchOpen) return;
+  // Use native event listener to avoid conflicts with search dialog
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      if (isSearchOpen) return;
+      // Don't trigger if any dialog is open
+      if (document.querySelector('[role="dialog"]')) return;
+
       const pkg = getSelectedPackage();
       if (pkg) {
         e.preventDefault();
         navigate(`/${pkg.type}/${pkg.name}`);
       }
-    },
-    { enableOnFormTags: false },
-    [getSelectedPackage, navigate, isSearchOpen]
-  );
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [getSelectedPackage, navigate, isSearchOpen]);
 
   // F: toggle favorite
   useHotkeys(
