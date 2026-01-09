@@ -24,7 +24,7 @@ import { useCardNavigation } from "@/hooks/useCardNavigation";
 import { useSEO } from "@/hooks/useSEO";
 import type { PackageType } from "@/types";
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 60;
 
 export function Home() {
   const [searchParams] = useSearchParams();
