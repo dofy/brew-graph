@@ -3,6 +3,7 @@
 🍺 A modern web application to search, explore and manage Homebrew packages.
 
 ![Version](https://img.shields.io/github/package-json/v/dofy/brew-graph?style=flat&color=blue)
+![License](https://img.shields.io/github/license/dofy/brew-graph?style=flat)
 ![Homebrew](https://img.shields.io/badge/Homebrew-FBB040?style=flat&logo=homebrew&logoColor=black)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript&logoColor=white)
