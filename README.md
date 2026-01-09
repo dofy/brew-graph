@@ -2,7 +2,7 @@
 
 🍺 A modern web application to search, explore and manage Homebrew packages.
 
-![Version](https://img.shields.io/github/package-json/v/sevenyu/brew-graph?style=flat&color=blue)
+![Version](https://img.shields.io/github/package-json/v/dofy/brew-graph?style=flat&color=blue)
 ![Homebrew](https://img.shields.io/badge/Homebrew-FBB040?style=flat&logo=homebrew&logoColor=black)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript&logoColor=white)
@@ -90,7 +90,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/sevenyu/brew-graph.git
+git clone https://github.com/dofy/brew-graph.git
 cd brew-graph
 
 # Install dependencies
