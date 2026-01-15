@@ -9,6 +9,7 @@ import {
   Minimize2,
   Tags,
   Settings2,
+  Github,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -61,6 +62,17 @@ export function Header() {
 
         {/* Navigation */}
         <div className="flex items-center gap-1 shrink-0">
+          <Button variant="ghost" size="icon" asChild>
+            <a
+              href="https://github.com/dofy/brew-graph"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="GitHub"
+            >
+              <Github className="h-4 w-4" />
+            </a>
+          </Button>
+
           <Link to="/favorites">
             <Button variant="ghost" size="icon" title="Favorites (Shift+F)">
               <Heart className="h-4 w-4" />

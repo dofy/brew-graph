@@ -1,4 +1,4 @@
-import { Heart } from "lucide-react";
+import { Github, Heart } from "lucide-react";
 import { useSettingsStore } from "@/stores/useSettingsStore";
 import { cn } from "@/lib/utils";
 import { version } from "../../../package.json";
@@ -30,6 +30,15 @@ export function Footer() {
 
           <div className="flex items-center gap-4">
             <span className="text-xs opacity-60">v{version}</span>
+            <a
+              href="https://github.com/dofy/brew-graph"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Github className="h-3.5 w-3.5" />
+              <span>GitHub</span>
+            </a>
             <span className="flex items-center gap-1">
               Made with <Heart className="h-3 w-3 text-red-500 fill-red-500" />{" "}
               by{" "}
