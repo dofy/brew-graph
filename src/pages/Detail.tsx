@@ -36,7 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFormula, useCask } from "@/hooks/usePackages";
 import { useFavoriteStore } from "@/stores/useFavoriteStore";
 import { useDetailHotkeys } from "@/hooks/useDetailHotkeys";
-import { useSEO } from "@/hooks/useSEO";
+import { useSEO, generatePackageJsonLd } from "@/hooks/useSEO";
 import type { PackageType, Formula, Cask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -197,6 +197,14 @@ function FormulaDetail({ formula }: { formula: Formula }) {
     title: `${formula.name} (Formula)`,
     description:
       formula.desc || `Install ${formula.name} via Homebrew: ${installCommand}`,
+    type: "product",
+    jsonLd: generatePackageJsonLd({
+      name: formula.name,
+      type: "formula",
+      desc: formula.desc,
+      homepage: formula.homepage,
+      version: formula.versions.stable,
+    }),
   });
 
   const { tagDialogOpen, setTagDialogOpen, favorite } = useDetailHotkeys({
@@ -468,6 +476,14 @@ function CaskDetail({ cask }: { cask: Cask }) {
     title: `${cask.token} (Cask)`,
     description:
       cask.desc || `Install ${cask.token} via Homebrew: ${installCommand}`,
+    type: "product",
+    jsonLd: generatePackageJsonLd({
+      name: cask.token,
+      type: "cask",
+      desc: cask.desc,
+      homepage: cask.homepage,
+      version: cask.version,
+    }),
   });
 
   const { tagDialogOpen, setTagDialogOpen, favorite } = useDetailHotkeys({

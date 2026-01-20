@@ -1,0 +1,11 @@
+# Brew Graph - Homebrew Package Explorer
+# https://brew-graph.vercel.app
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://brew-graph.vercel.app/sitemap.xml
+
+# Crawl-delay (optional, for polite crawling)
+Crawl-delay: 1
