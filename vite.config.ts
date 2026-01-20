@@ -16,7 +16,7 @@ export default defineConfig({
         short_name: "Brew Graph",
         description:
           "Search, explore and manage Homebrew packages. Browse formulae and casks, view dependencies, and organize your favorites with tags.",
-        theme_color: "#f97316",
+        theme_color: "#1a1a1a",
         background_color: "#0a0a0a",
         display: "standalone",
         orientation: "portrait-primary",
