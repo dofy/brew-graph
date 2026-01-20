@@ -1,7 +1,7 @@
 {
   "name": "brew-graph",
   "private": true,
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Search, explore and manage Homebrew packages. Browse formulae and casks, view dependencies, and organize your favorites with tags.",
   "author": {
     "name": "Seven Yu",

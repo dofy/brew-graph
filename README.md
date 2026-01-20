@@ -4,6 +4,7 @@
 
 ![Version](https://img.shields.io/github/package-json/v/dofy/brew-graph?style=flat&color=blue)
 ![License](https://img.shields.io/github/license/dofy/brew-graph?style=flat)
+![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=flat&logo=pwa&logoColor=white)
 ![Homebrew](https://img.shields.io/badge/Homebrew-FBB040?style=flat&logo=homebrew&logoColor=black)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript&logoColor=white)
@@ -20,6 +21,7 @@
 - ⌨️ **Full Keyboard Support** - Navigate entirely with keyboard shortcuts
 - 🌓 **Dark Mode** - Light, dark, and system theme support
 - 📱 **Responsive Design** - Works on desktop and mobile devices
+- 📲 **PWA Support** - Install as a native app on desktop and mobile
 
 ## 🔍 Search Syntax
 
@@ -113,6 +115,16 @@ pnpm build
 pnpm preview
 ```
 
+## 📲 Install as App
+
+Brew Graph is a Progressive Web App (PWA) that can be installed on your device:
+
+- **Desktop (Chrome/Edge)**: Click the install icon in the address bar
+- **iOS Safari**: Tap Share → "Add to Home Screen"
+- **Android Chrome**: Tap menu → "Install app"
+
+Once installed, the app works offline with cached data.
+
 ## 🛠️ Tech Stack
 
 - **Framework**: React 19 + TypeScript
@@ -122,6 +134,7 @@ pnpm preview
 - **Local Database**: Dexie.js (IndexedDB)
 - **Routing**: React Router 7
 - **Icons**: Lucide React
+- **PWA**: vite-plugin-pwa + Workbox
 
 ## 📦 Data Source
 
