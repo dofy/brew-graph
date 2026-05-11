@@ -2,12 +2,8 @@ import { useParams, Link } from "react-router-dom";
 import {
   Package,
   Box,
-  Heart,
-  ExternalLink,
   AlertTriangle,
-  Terminal,
   GitBranch,
-  Tag,
   Plus,
   X,
   Ban,
@@ -16,7 +12,6 @@ import {
   FolderTree,
   Lock,
   Activity,
-  FileText,
   Info,
   Download,
   TrendingUp,
@@ -31,7 +26,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CopyButton } from "@/components/common/CopyButton";
 import { TagDialog } from "@/components/common/TagDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -40,8 +34,14 @@ import { useFavoriteStore } from "@/stores/useFavoriteStore";
 import { usePackageSnapshot } from "@/stores/usePackageSnapshot";
 import { useDetailHotkeys } from "@/hooks/useDetailHotkeys";
 import { useSEO, generatePackageJsonLd } from "@/hooks/useSEO";
+import {
+  PackageHeader,
+  InstallCommandCard,
+  DescriptionCard,
+  CaveatsCard,
+  TagsCard,
+} from "@/components/package/PackageDetailParts";
 import type { PackageType, Formula, Cask } from "@/types";
-import { cn } from "@/lib/utils";
 import { lazy, Suspense, useState } from "react";
 
 // Lazy-load the React Flow-powered graph view; it pulls in ~180KB of code
@@ -313,7 +313,6 @@ function StatusBadges({
 }
 
 function FormulaDetail({ formula }: { formula: Formula }) {
-  const { toggleFavorite } = useFavoriteStore();
   const analytics = usePackageSnapshot((s) => s.analytics);
   const installs30d = analytics?.formula[formula.name];
   const installCommand = `brew install ${formula.name}`;
@@ -349,53 +348,15 @@ function FormulaDetail({ formula }: { formula: Formula }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Package className="h-8 w-8 text-primary shrink-0 mt-1" />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold">{formula.name}</h1>
-              {formula.deprecated && (
-                <Badge
-                  variant="outline"
-                  className="text-yellow-600 border-yellow-600"
-                >
-                  Deprecated
-                </Badge>
-              )}
-              {formula.disabled && (
-                <Badge variant="destructive">Disabled</Badge>
-              )}
-            </div>
-            <p className="text-muted-foreground">{formula.full_name}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => toggleFavorite(formula.name, "formula")}
-            title="Favorite (F)"
-          >
-            <Heart
-              className={cn(
-                "h-4 w-4",
-                favorite ? "fill-red-500 text-red-500" : ""
-              )}
-            />
-          </Button>
-          <Button variant="outline" asChild title="Open homepage (O)">
-            <a
-              href={formula.homepage}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Homepage
-            </a>
-          </Button>
-        </div>
-      </div>
+      <PackageHeader
+        name={formula.name}
+        type="formula"
+        subtitle={formula.full_name}
+        homepage={formula.homepage}
+        deprecated={formula.deprecated}
+        disabled={formula.disabled}
+        favorite={favorite}
+      />
 
       <TagDialog
         pkg={{ name: formula.name, type: "formula" }}
@@ -414,20 +375,7 @@ function FormulaDetail({ formula }: { formula: Formula }) {
         disableReplacementCask={formula.disable_replacement_cask}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Terminal className="h-5 w-5" />
-            Install Command
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg font-mono text-sm">
-            <code className="flex-1 break-all">{installCommand}</code>
-            <CopyButton text={installCommand} />
-          </div>
-        </CardContent>
-      </Card>
+      <InstallCommandCard command={installCommand} />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -504,32 +452,12 @@ function FormulaDetail({ formula }: { formula: Formula }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Tag className="h-5 w-5" />
-              Tags
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TagManager name={formula.name} type="formula" />
-          </CardContent>
-        </Card>
+        <TagsCard>
+          <TagManager name={formula.name} type="formula" />
+        </TagsCard>
       </div>
 
-      {formula.desc && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Description
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="leading-relaxed">{formula.desc}</p>
-          </CardContent>
-        </Card>
-      )}
+      {formula.desc && <DescriptionCard desc={formula.desc} />}
 
       {allDependencies.length > 0 && (
         <>
@@ -667,27 +595,12 @@ function FormulaDetail({ formula }: { formula: Formula }) {
         </Card>
       )}
 
-      {formula.caveats && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Caveats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto">
-              {formula.caveats}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
+      {formula.caveats && <CaveatsCard caveats={formula.caveats} />}
     </div>
   );
 }
 
 function CaskDetail({ cask }: { cask: Cask }) {
-  const { toggleFavorite } = useFavoriteStore();
   const analytics = usePackageSnapshot((s) => s.analytics);
   const installs30d = analytics?.cask[cask.token];
   const installCommand = `brew install --cask ${cask.token}`;
@@ -720,47 +633,15 @@ function CaskDetail({ cask }: { cask: Cask }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Box className="h-8 w-8 text-primary shrink-0 mt-1" />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold">{cask.token}</h1>
-              {cask.deprecated && (
-                <Badge
-                  variant="outline"
-                  className="text-yellow-600 border-yellow-600"
-                >
-                  Deprecated
-                </Badge>
-              )}
-              {cask.disabled && <Badge variant="destructive">Disabled</Badge>}
-            </div>
-            <p className="text-muted-foreground">{cask.name.join(", ")}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => toggleFavorite(cask.token, "cask")}
-            title="Favorite (F)"
-          >
-            <Heart
-              className={cn(
-                "h-4 w-4",
-                favorite ? "fill-red-500 text-red-500" : ""
-              )}
-            />
-          </Button>
-          <Button variant="outline" asChild title="Open homepage (O)">
-            <a href={cask.homepage} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Homepage
-            </a>
-          </Button>
-        </div>
-      </div>
+      <PackageHeader
+        name={cask.token}
+        type="cask"
+        subtitle={cask.name.join(", ")}
+        homepage={cask.homepage}
+        deprecated={cask.deprecated}
+        disabled={cask.disabled}
+        favorite={favorite}
+      />
 
       <TagDialog
         pkg={{ name: cask.token, type: "cask" }}
@@ -779,20 +660,7 @@ function CaskDetail({ cask }: { cask: Cask }) {
         disableReplacementCask={cask.disable_replacement_cask}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Terminal className="h-5 w-5" />
-            Install Command
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg font-mono text-sm">
-            <code className="flex-1 break-all">{installCommand}</code>
-            <CopyButton text={installCommand} />
-          </div>
-        </CardContent>
-      </Card>
+      <InstallCommandCard command={installCommand} />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
@@ -861,32 +729,12 @@ function CaskDetail({ cask }: { cask: Cask }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Tag className="h-5 w-5" />
-              Tags
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TagManager name={cask.token} type="cask" />
-          </CardContent>
-        </Card>
+        <TagsCard>
+          <TagManager name={cask.token} type="cask" />
+        </TagsCard>
       </div>
 
-      {cask.desc && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Description
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="leading-relaxed">{cask.desc}</p>
-          </CardContent>
-        </Card>
-      )}
+      {cask.desc && <DescriptionCard desc={cask.desc} />}
 
       {allDependencies.length > 0 && (
         <Card>
@@ -963,21 +811,7 @@ function CaskDetail({ cask }: { cask: Cask }) {
           </Card>
         )}
 
-      {cask.caveats && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Caveats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto">
-              {cask.caveats}
-            </pre>
-          </CardContent>
-        </Card>
-      )}
+      {cask.caveats && <CaveatsCard caveats={cask.caveats} />}
     </div>
   );
 }
