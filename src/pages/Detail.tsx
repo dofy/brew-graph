@@ -48,6 +48,60 @@ function formatInstalls(n: number | undefined): string {
   return n.toLocaleString();
 }
 
+function ReverseDependents({
+  name,
+  type,
+}: {
+  name: string;
+  type: PackageType;
+}) {
+  const reverseDeps = usePackageSnapshot((s) => s.reverseDeps);
+  const isLoaded = usePackageSnapshot((s) => s.isLoaded);
+  const dependents = reverseDeps.get(`${type}:${name}`) ?? [];
+
+  // Some popular formulae (e.g. openssl@3) have thousands of dependents;
+  // collapse the long tail behind a "show all" affordance.
+  const [showAll, setShowAll] = useState(false);
+  const SHOW_LIMIT = 60;
+
+  if (!isLoaded || dependents.length === 0) return null;
+
+  const visible = showAll ? dependents : dependents.slice(0, SHOW_LIMIT);
+  const hidden = dependents.length - visible.length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <GitBranch className="h-5 w-5 rotate-180" />
+          Used by ({dependents.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-1">
+          {visible.map((d) => (
+            <DependencyLink
+              key={`${d.type}-${d.name}`}
+              name={d.name}
+              targetType={d.type}
+            />
+          ))}
+        </div>
+        {hidden > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2"
+            onClick={() => setShowAll(true)}
+          >
+            Show {hidden} more
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function DependencyLink({
   name,
   targetType,
@@ -468,6 +522,8 @@ function FormulaDetail({ formula }: { formula: Formula }) {
         </Card>
       )}
 
+      <ReverseDependents name={formula.name} type="formula" />
+
       {formula.caveats && (
         <Card>
           <CardHeader>
@@ -705,6 +761,8 @@ function CaskDetail({ cask }: { cask: Cask }) {
           </CardContent>
         </Card>
       )}
+
+      <ReverseDependents name={cask.token} type="cask" />
 
       {cask.caveats && (
         <Card>
