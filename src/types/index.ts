@@ -33,9 +33,13 @@ export interface Formula {
   deprecated: boolean;
   deprecation_date: string | null;
   deprecation_reason: string | null;
+  deprecation_replacement_formula?: string | null;
+  deprecation_replacement_cask?: string | null;
   disabled: boolean;
   disable_date: string | null;
   disable_reason: string | null;
+  disable_replacement_formula?: string | null;
+  disable_replacement_cask?: string | null;
   post_install_defined: boolean;
   service: unknown | null;
   head_dependencies?: {
@@ -100,9 +104,13 @@ export interface Cask {
   deprecated: boolean;
   deprecation_date: string | null;
   deprecation_reason: string | null;
+  deprecation_replacement_formula?: string | null;
+  deprecation_replacement_cask?: string | null;
   disabled: boolean;
   disable_date: string | null;
   disable_reason: string | null;
+  disable_replacement_formula?: string | null;
+  disable_replacement_cask?: string | null;
   tap_git_head: string;
   languages: string[];
 }

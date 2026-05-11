@@ -210,20 +210,57 @@ function StatusBadges({
   disabled,
   deprecationReason,
   disableReason,
+  deprecationReplacementFormula,
+  deprecationReplacementCask,
+  disableReplacementFormula,
+  disableReplacementCask,
 }: {
   deprecated: boolean;
   disabled: boolean;
   deprecationReason?: string | null;
   disableReason?: string | null;
+  deprecationReplacementFormula?: string | null;
+  deprecationReplacementCask?: string | null;
+  disableReplacementFormula?: string | null;
+  disableReplacementCask?: string | null;
 }) {
   if (!deprecated && !disabled) return null;
+
+  const renderReplacement = (
+    formulaName: string | null | undefined,
+    caskName: string | null | undefined
+  ) => {
+    if (!formulaName && !caskName) return null;
+    return (
+      <p className="text-sm">
+        Replaced by{" "}
+        {formulaName && (
+          <Link
+            to={`/formula/${formulaName}`}
+            className="font-mono underline underline-offset-2 hover:text-primary"
+          >
+            {formulaName}
+          </Link>
+        )}
+        {formulaName && caskName && " / "}
+        {caskName && (
+          <Link
+            to={`/cask/${caskName}`}
+            className="font-mono underline underline-offset-2 hover:text-primary"
+          >
+            {caskName}
+          </Link>
+        )}
+      </p>
+    );
+  };
 
   return (
     <div className="space-y-2">
       {deprecated && (
-        <div className="flex items-center gap-2 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
-          <div>
+        <div className="flex items-start gap-2 p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
             <p className="font-medium text-yellow-600 dark:text-yellow-400">
               Deprecated
             </p>
@@ -232,16 +269,24 @@ function StatusBadges({
                 {deprecationReason}
               </p>
             )}
+            {renderReplacement(
+              deprecationReplacementFormula,
+              deprecationReplacementCask
+            )}
           </div>
         </div>
       )}
       {disabled && (
-        <div className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-          <Ban className="h-5 w-5 text-destructive shrink-0" />
-          <div>
+        <div className="flex items-start gap-2 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+          <Ban className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="space-y-1">
             <p className="font-medium text-destructive">Disabled</p>
             {disableReason && (
               <p className="text-sm text-muted-foreground">{disableReason}</p>
+            )}
+            {renderReplacement(
+              disableReplacementFormula,
+              disableReplacementCask
             )}
           </div>
         </div>
@@ -346,6 +391,10 @@ function FormulaDetail({ formula }: { formula: Formula }) {
         disabled={formula.disabled}
         deprecationReason={formula.deprecation_reason}
         disableReason={formula.disable_reason}
+        deprecationReplacementFormula={formula.deprecation_replacement_formula}
+        deprecationReplacementCask={formula.deprecation_replacement_cask}
+        disableReplacementFormula={formula.disable_replacement_formula}
+        disableReplacementCask={formula.disable_replacement_cask}
       />
 
       <Card>
@@ -524,6 +573,42 @@ function FormulaDetail({ formula }: { formula: Formula }) {
 
       <ReverseDependents name={formula.name} type="formula" />
 
+      {formula.versioned_formulae && formula.versioned_formulae.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Hash className="h-5 w-5" />
+              Other versions ({formula.versioned_formulae.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1">
+              {formula.versioned_formulae.map((v) => (
+                <DependencyLink key={v} name={v} targetType="formula" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {formula.conflicts_with && formula.conflicts_with.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Conflicts with ({formula.conflicts_with.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1">
+              {formula.conflicts_with.map((c) => (
+                <DependencyLink key={c} name={c} targetType="formula" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {formula.caveats && (
         <Card>
           <CardHeader>
@@ -630,6 +715,10 @@ function CaskDetail({ cask }: { cask: Cask }) {
         disabled={cask.disabled}
         deprecationReason={cask.deprecation_reason}
         disableReason={cask.disable_reason}
+        deprecationReplacementFormula={cask.deprecation_replacement_formula}
+        deprecationReplacementCask={cask.deprecation_replacement_cask}
+        disableReplacementFormula={cask.disable_replacement_formula}
+        disableReplacementCask={cask.disable_replacement_cask}
       />
 
       <Card>
@@ -763,6 +852,29 @@ function CaskDetail({ cask }: { cask: Cask }) {
       )}
 
       <ReverseDependents name={cask.token} type="cask" />
+
+      {cask.conflicts_with &&
+        ((cask.conflicts_with.formula?.length ?? 0) > 0 ||
+          (cask.conflicts_with.cask?.length ?? 0) > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                Conflicts with
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-1">
+                {cask.conflicts_with.formula?.map((c) => (
+                  <DependencyLink key={c} name={c} targetType="formula" />
+                ))}
+                {cask.conflicts_with.cask?.map((c) => (
+                  <DependencyLink key={c} name={c} targetType="cask" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {cask.caveats && (
         <Card>
