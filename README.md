@@ -25,13 +25,16 @@
 
 ## 🔍 Search Syntax
 
-| Syntax   | Description                    | Example       |
-| -------- | ------------------------------ | ------------- |
-| `text`   | Search by name and description | `react`       |
-| `#tag`   | Filter by tag                  | `#frontend`   |
-| `*`      | Show only favorites            | `*`           |
-| Combined | Combine multiple filters       | `react #tool` |
-| Combined | Search favorites with text     | `* node`      |
+| Syntax              | Description                              | Example              |
+| ------------------- | ---------------------------------------- | -------------------- |
+| `text`              | Search by name, aliases and description  | `react`              |
+| `#tag`              | Filter by tag                            | `#frontend`          |
+| `*`                 | Show only favorites                      | `*`                  |
+| `kind:<value>`      | Cask category (app, font, pkg, mas, …)   | `kind:font`          |
+| `tap:<value>`       | Filter by tap                            | `tap:homebrew/cask`  |
+| `license:<value>`   | Formula license substring match          | `license:mit`        |
+| `dep:<formula>`     | Packages depending on a formula          | `dep:openssl`        |
+| Combined            | Combine any of the above                 | `editor kind:app`    |
 
 ## ⌨️ Keyboard Shortcuts
 

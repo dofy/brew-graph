@@ -3,6 +3,7 @@ import { db } from "@/db";
 import type { Formula, Cask } from "@/types";
 import type { PackageItem } from "@/hooks/usePackages";
 import { getAnalytics, type AnalyticsSnapshot } from "@/db/sync";
+import { getCaskKind } from "@/lib/caskKind";
 
 /**
  * In-memory mirror of the package catalogue, pre-converted to `PackageItem`
@@ -50,6 +51,8 @@ function formulaToPackage(formula: Formula): PackageItem {
     dependencies: formula.dependencies,
     deprecated: formula.deprecated,
     disabled: formula.disabled,
+    tap: formula.tap,
+    license: formula.license,
   };
 }
 
@@ -71,6 +74,8 @@ function caskToPackage(cask: Cask): PackageItem {
     ],
     deprecated: cask.deprecated,
     disabled: cask.disabled,
+    tap: cask.tap,
+    kind: getCaskKind(cask),
   };
 }
 

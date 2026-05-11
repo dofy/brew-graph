@@ -17,6 +17,7 @@ import { useFavoriteStore } from "@/stores/useFavoriteStore";
 import { useSearchStore } from "@/stores/useSearchStore";
 import { toast } from "sonner";
 import type { PackageItem } from "@/hooks/usePackages";
+import { caskKindLabel } from "@/lib/caskKind";
 import { cn } from "@/lib/utils";
 
 function formatInstallCount(n: number): string {
@@ -71,11 +72,25 @@ export const PackageGrid = forwardRef<HTMLDivElement, PackageGridProps>(
         <div ref={ref} className="text-center py-12">
           <p className="text-muted-foreground">No packages found</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Search tips: use{" "}
-            <code className="px-1 py-0.5 bg-muted rounded text-xs">#tag</code>{" "}
-            to filter by tag,{" "}
-            <code className="px-1 py-0.5 bg-muted rounded text-xs">*</code> for
-            favorites only
+            Try{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">#tag</code>,{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">*</code>{" "}
+            (favorites),{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">
+              kind:app
+            </code>
+            ,{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">
+              tap:homebrew/cask
+            </code>
+            ,{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">
+              license:mit
+            </code>
+            , or{" "}
+            <code className="px-1 py-0.5 bg-muted rounded text-xs">
+              dep:openssl
+            </code>
           </p>
         </div>
       );
@@ -214,7 +229,9 @@ function PackageCard({
 
           <div className="flex items-center gap-1 flex-wrap mb-1.5">
             <TypedBadge type={pkg.type} className="text-[10px] px-1.5 py-0">
-              {pkg.type}
+              {pkg.type === "cask" && pkg.kind
+                ? caskKindLabel(pkg.kind)
+                : pkg.type}
             </TypedBadge>
             <TypedBadge
               type="version"

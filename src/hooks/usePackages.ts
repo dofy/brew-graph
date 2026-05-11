@@ -4,6 +4,7 @@ import { db } from "@/db";
 import type { PackageType } from "@/types";
 import { useFavoriteStore } from "@/stores/useFavoriteStore";
 import { usePackageSnapshot } from "@/stores/usePackageSnapshot";
+import type { CaskKind } from "@/lib/caskKind";
 
 export interface PackageItem {
   name: string;
@@ -18,6 +19,12 @@ export interface PackageItem {
   disabled: boolean;
   /** Homebrew analytics: install count over the past 30 days. */
   installs30d?: number;
+  /** Tap (e.g. homebrew/core, homebrew/cask, third-party). */
+  tap?: string;
+  /** SPDX-ish license string (formula only). */
+  license?: string | null;
+  /** Coarse cask classification derived from `artifacts` (cask only). */
+  kind?: CaskKind | null;
 }
 
 interface ScoredPackage {
@@ -30,6 +37,10 @@ interface ParsedQuery {
   text: string; // Plain text search
   tags: string[]; // #tag searches
   favoritesOnly: boolean; // * for favorites
+  kinds: string[]; // kind:app
+  taps: string[]; // tap:homebrew/cask
+  licenses: string[]; // license:mit
+  deps: string[]; // dep:openssl
 }
 
 function parseSearchQuery(query: string): ParsedQuery {
@@ -37,6 +48,10 @@ function parseSearchQuery(query: string): ParsedQuery {
     text: "",
     tags: [],
     favoritesOnly: false,
+    kinds: [],
+    taps: [],
+    licenses: [],
+    deps: [],
   };
 
   // Match #tag patterns
@@ -50,10 +65,33 @@ function parseSearchQuery(query: string): ParsedQuery {
     result.favoritesOnly = true;
   }
 
+  // key:value tokens (must be matched before plain-text extraction)
+  const kvRe = /\b(kind|tap|license|dep):([^\s]+)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = kvRe.exec(query)) !== null) {
+    const [, key, value] = m;
+    const v = value.toLowerCase();
+    switch (key.toLowerCase()) {
+      case "kind":
+        result.kinds.push(v);
+        break;
+      case "tap":
+        result.taps.push(v);
+        break;
+      case "license":
+        result.licenses.push(v);
+        break;
+      case "dep":
+        result.deps.push(v);
+        break;
+    }
+  }
+
   // Extract plain text (remove special tokens)
   result.text = query
-    .replace(/#\S+/g, "") // Remove #tag
-    .replace(/\*/g, "") // Remove *
+    .replace(kvRe, "")
+    .replace(/#\S+/g, "")
+    .replace(/\*/g, "")
     .trim()
     .toLowerCase();
 
@@ -211,17 +249,17 @@ function useFilteredPackages(
     const searchTags = parsed.tags;
     const requiredTags = tag ? [tag, ...searchTags] : searchTags;
     const requireFavorites = favoritesOnly || parsed.favoritesOnly;
+    const requiredKinds = parsed.kinds;
+    const requiredTaps = parsed.taps;
+    const requiredLicenses = parsed.licenses;
+    const requiredDeps = parsed.deps;
 
-    const matchesFilters = (
-      name: string,
-      pkgType: PackageType,
-      deprecated: boolean,
-      disabled: boolean
-    ) => {
-      if (requireFavorites && !favorites.has(`${pkgType}:${name}`)) return false;
+    const matchesPkgFilters = (pkg: PackageItem): boolean => {
+      if (requireFavorites && !favorites.has(`${pkg.type}:${pkg.name}`))
+        return false;
 
       if (requiredTags.length > 0) {
-        const itemTags = userTags.get(`${pkgType}:${name}`);
+        const itemTags = userTags.get(`${pkg.type}:${pkg.name}`);
         if (!itemTags) return false;
         for (const reqTag of requiredTags) {
           const lowerReq = reqTag.toLowerCase();
@@ -236,16 +274,47 @@ function useFilteredPackages(
         }
       }
 
-      if (hideDeprecated && (deprecated || disabled)) return false;
+      if (hideDeprecated && (pkg.deprecated || pkg.disabled)) return false;
+
+      if (requiredKinds.length > 0) {
+        // Only casks have a kind; formula matches drop out unless user
+        // explicitly typed `kind:formula`.
+        if (pkg.type === "formula") {
+          if (!requiredKinds.includes("formula")) return false;
+        } else {
+          const k = (pkg.kind || "").toLowerCase();
+          if (!requiredKinds.some((rk) => rk === k)) return false;
+        }
+      }
+
+      if (requiredTaps.length > 0) {
+        const t = (pkg.tap || "").toLowerCase();
+        if (!requiredTaps.some((rt) => t.includes(rt))) return false;
+      }
+
+      if (requiredLicenses.length > 0) {
+        const l = (pkg.license || "").toLowerCase();
+        if (!l) return false;
+        if (!requiredLicenses.some((rl) => l.includes(rl))) return false;
+      }
+
+      if (requiredDeps.length > 0) {
+        if (pkg.dependencies.length === 0) return false;
+        const lowerDeps = pkg.dependencies.map((d) => d.toLowerCase());
+        for (const rd of requiredDeps) {
+          if (!lowerDeps.some((d) => d === rd || d.startsWith(rd + "@"))) {
+            return false;
+          }
+        }
+      }
+
       return true;
     };
 
     const scored: ScoredPackage[] = [];
 
     const pushIfMatch = (pkg: PackageItem) => {
-      if (!matchesFilters(pkg.name, pkg.type, pkg.deprecated, pkg.disabled)) {
-        return;
-      }
+      if (!matchesPkgFilters(pkg)) return;
       if (!lowerQuery) {
         scored.push({ pkg, score: 0 });
         return;
