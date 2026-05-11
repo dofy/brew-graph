@@ -124,6 +124,9 @@ function PackageCard({
   const displayVersion =
     pkg.version.length > 12 ? pkg.version.slice(0, 12) + "…" : pkg.version;
 
+  const hasFriendlyName =
+    pkg.displayName && pkg.displayName !== pkg.name;
+
   return (
     <Link
       to={`/${pkg.type}/${pkg.name}`}
@@ -147,7 +150,7 @@ function PackageCard({
                 <Box className="h-4 w-4 text-muted-foreground shrink-0" />
               )}
               <CardTitle className="text-sm font-medium truncate min-w-0">
-                {pkg.name}
+                {pkg.displayName || pkg.name}
               </CardTitle>
             </div>
             <div className="flex items-center shrink-0">
@@ -183,6 +186,14 @@ function PackageCard({
           </div>
         </CardHeader>
         <CardContent className="px-3 py-0">
+          {hasFriendlyName && (
+            <p
+              className="text-[10px] text-muted-foreground/70 font-mono truncate mb-0.5"
+              title={pkg.name}
+            >
+              {pkg.name}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground line-clamp-2 mb-2.5">
             {pkg.desc || "No description available"}
           </p>

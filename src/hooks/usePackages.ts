@@ -5,6 +5,8 @@ import { useFavoriteStore } from "@/stores/useFavoriteStore";
 
 export interface PackageItem {
   name: string;
+  displayName: string;
+  aliases: string[];
   type: PackageType;
   desc: string | null;
   version: string;
@@ -17,6 +19,8 @@ export interface PackageItem {
 function formulaToPackage(formula: Formula): PackageItem {
   return {
     name: formula.name,
+    displayName: formula.name,
+    aliases: [...(formula.aliases || []), ...(formula.oldnames || [])],
     type: "formula",
     desc: formula.desc,
     version: formula.versions.stable,
@@ -28,8 +32,13 @@ function formulaToPackage(formula: Formula): PackageItem {
 }
 
 function caskToPackage(cask: Cask): PackageItem {
+  const displayName = cask.name?.[0] || cask.token;
   return {
     name: cask.token,
+    displayName,
+    aliases: [...(cask.name || []), ...(cask.old_tokens || [])].filter(
+      (n) => n && n !== cask.token
+    ),
     type: "cask",
     desc: cask.desc,
     version: cask.version,
@@ -86,7 +95,8 @@ function parseSearchQuery(query: string): ParsedQuery {
 function calculateMatchScore(
   query: string,
   name: string,
-  desc: string | null
+  desc: string | null,
+  aliases: string[] = []
 ): number {
   if (!query) return 0;
 
@@ -118,6 +128,35 @@ function calculateMatchScore(
       break;
     }
   }
+
+  // Alias matches (e.g. cask `name[]`, formula `aliases`/`oldnames`).
+  // Slightly lower weight than direct name matches so primary name still wins ties.
+  let bestAliasScore = 0;
+  for (const alias of aliases) {
+    if (!alias) continue;
+    const lowerAlias = alias.toLowerCase();
+    let aliasScore = 0;
+    if (lowerAlias === query) {
+      aliasScore = 700;
+    } else if (lowerAlias.startsWith(query)) {
+      aliasScore = 350 + (query.length / lowerAlias.length) * 70;
+    } else if (lowerAlias.includes(query)) {
+      aliasScore = 140 + (query.length / lowerAlias.length) * 35;
+    } else {
+      const aliasWords = lowerAlias.split(/[-_./\s]+/);
+      for (const word of aliasWords) {
+        if (word === query) {
+          aliasScore = Math.max(aliasScore, 200);
+          break;
+        } else if (word.startsWith(query)) {
+          aliasScore = Math.max(aliasScore, 100);
+          break;
+        }
+      }
+    }
+    if (aliasScore > bestAliasScore) bestAliasScore = aliasScore;
+  }
+  score += bestAliasScore;
 
   // Description contains query
   if (lowerDesc.includes(query)) {
@@ -219,7 +258,8 @@ export function useSearchPackages(
           const score = calculateMatchScore(
             lowerQuery,
             formula.name,
-            formula.desc
+            formula.desc,
+            [...(formula.aliases || []), ...(formula.oldnames || [])]
           );
           if (score > 0) {
             scored.push({ pkg: formulaToPackage(formula), score });
@@ -240,7 +280,10 @@ export function useSearchPackages(
         if (!lowerQuery) {
           scored.push({ pkg: caskToPackage(cask), score: 0 });
         } else {
-          const score = calculateMatchScore(lowerQuery, cask.token, cask.desc);
+          const score = calculateMatchScore(lowerQuery, cask.token, cask.desc, [
+            ...(cask.name || []),
+            ...(cask.old_tokens || []),
+          ]);
           if (score > 0) {
             scored.push({ pkg: caskToPackage(cask), score });
           }
@@ -346,7 +389,8 @@ export function useTotalPackageCount(
           const score = calculateMatchScore(
             lowerQuery,
             formula.name,
-            formula.desc
+            formula.desc,
+            [...(formula.aliases || []), ...(formula.oldnames || [])]
           );
           if (score > 0) count++;
         }
@@ -364,7 +408,12 @@ export function useTotalPackageCount(
         if (!lowerQuery) {
           count++;
         } else {
-          const score = calculateMatchScore(lowerQuery, cask.token, cask.desc);
+          const score = calculateMatchScore(
+            lowerQuery,
+            cask.token,
+            cask.desc,
+            [...(cask.name || []), ...(cask.old_tokens || [])]
+          );
           if (score > 0) count++;
         }
       }
