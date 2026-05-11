@@ -34,6 +34,7 @@ import {
 import { CopyButton } from "@/components/common/CopyButton";
 import { TagDialog } from "@/components/common/TagDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useFormula, useCask } from "@/hooks/usePackages";
 import { useFavoriteStore } from "@/stores/useFavoriteStore";
 import { usePackageSnapshot } from "@/stores/usePackageSnapshot";
@@ -41,7 +42,23 @@ import { useDetailHotkeys } from "@/hooks/useDetailHotkeys";
 import { useSEO, generatePackageJsonLd } from "@/hooks/useSEO";
 import type { PackageType, Formula, Cask } from "@/types";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+
+// Lazy-load the React Flow-powered graph view; it pulls in ~180KB of code
+// that is only needed when the user opens the "Graph" tab.
+const DependencyGraph = lazy(() =>
+  import("@/components/package/DependencyGraph").then((m) => ({
+    default: m.DependencyGraph,
+  }))
+);
+
+function GraphFallback() {
+  return (
+    <div className="h-[480px] rounded-lg border bg-muted/20 flex items-center justify-center text-sm text-muted-foreground">
+      Loading graph…
+    </div>
+  );
+}
 
 function formatInstalls(n: number | undefined): string {
   if (!n) return "—";
@@ -515,60 +532,101 @@ function FormulaDetail({ formula }: { formula: Formula }) {
       )}
 
       {allDependencies.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GitBranch className="h-5 w-5" />
-              Dependencies ({allDependencies.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {formula.dependencies.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Runtime</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {formula.dependencies.map((dep) => (
-                      <DependencyLink
-                        key={dep}
-                        name={dep}
-                        targetType="formula"
-                      />
-                    ))}
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GitBranch className="h-5 w-5" />
+                Dependencies ({allDependencies.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="list">
+                <TabsList className="mb-3">
+                  <TabsTrigger value="list">List</TabsTrigger>
+                  <TabsTrigger value="graph">Graph</TabsTrigger>
+                </TabsList>
+                <TabsContent value="list">
+                  <div className="space-y-4">
+                    {formula.dependencies.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Runtime</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {formula.dependencies.map((dep) => (
+                            <DependencyLink
+                              key={dep}
+                              name={dep}
+                              targetType="formula"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {formula.build_dependencies.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Build</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {formula.build_dependencies.map((dep) => (
+                            <DependencyLink
+                              key={dep}
+                              name={dep}
+                              targetType="formula"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {formula.optional_dependencies.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Optional</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {formula.optional_dependencies.map((dep) => (
+                            <DependencyLink
+                              key={dep}
+                              name={dep}
+                              targetType="formula"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-              {formula.build_dependencies.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Build</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {formula.build_dependencies.map((dep) => (
-                      <DependencyLink
-                        key={dep}
-                        name={dep}
-                        targetType="formula"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {formula.optional_dependencies.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2">Optional</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {formula.optional_dependencies.map((dep) => (
-                      <DependencyLink
-                        key={dep}
-                        name={dep}
-                        targetType="formula"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                </TabsContent>
+                <TabsContent value="graph">
+                  <Suspense fallback={<GraphFallback />}>
+                    <DependencyGraph
+                      rootName={formula.name}
+                      rootType="formula"
+                      rootDesc={formula.desc}
+                      dependencies={[
+                        ...formula.dependencies.map((n) => ({
+                          name: n,
+                          type: "formula" as const,
+                          kind: "runtime" as const,
+                        })),
+                        ...formula.build_dependencies.map((n) => ({
+                          name: n,
+                          type: "formula" as const,
+                          kind: "build" as const,
+                        })),
+                        ...formula.recommended_dependencies.map((n) => ({
+                          name: n,
+                          type: "formula" as const,
+                          kind: "recommended" as const,
+                        })),
+                        ...formula.optional_dependencies.map((n) => ({
+                          name: n,
+                          type: "formula" as const,
+                          kind: "optional" as const,
+                        })),
+                      ]}
+                    />
+                  </Suspense>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       <ReverseDependents name={formula.name} type="formula" />
@@ -839,14 +897,43 @@ function CaskDetail({ cask }: { cask: Cask }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-1">
-              {cask.depends_on?.formula?.map((dep) => (
-                <DependencyLink key={dep} name={dep} targetType="formula" />
-              ))}
-              {cask.depends_on?.cask?.map((dep) => (
-                <DependencyLink key={dep} name={dep} targetType="cask" />
-              ))}
-            </div>
+            <Tabs defaultValue="list">
+              <TabsList className="mb-3">
+                <TabsTrigger value="list">List</TabsTrigger>
+                <TabsTrigger value="graph">Graph</TabsTrigger>
+              </TabsList>
+              <TabsContent value="list">
+                <div className="flex flex-wrap gap-1">
+                  {cask.depends_on?.formula?.map((dep) => (
+                    <DependencyLink key={dep} name={dep} targetType="formula" />
+                  ))}
+                  {cask.depends_on?.cask?.map((dep) => (
+                    <DependencyLink key={dep} name={dep} targetType="cask" />
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="graph">
+                <Suspense fallback={<GraphFallback />}>
+                  <DependencyGraph
+                    rootName={cask.token}
+                    rootType="cask"
+                    rootDesc={cask.desc}
+                    dependencies={[
+                      ...(cask.depends_on?.formula || []).map((n) => ({
+                        name: n,
+                        type: "formula" as const,
+                        kind: "runtime" as const,
+                      })),
+                      ...(cask.depends_on?.cask || []).map((n) => ({
+                        name: n,
+                        type: "cask" as const,
+                        kind: "runtime" as const,
+                      })),
+                    ]}
+                  />
+                </Suspense>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       )}
