@@ -1,4 +1,4 @@
-import { db, setLastSyncTime, isSyncExpired, hasData, clearAllData } from './index';
+import { db, setLastSyncTime, isSyncExpired, hasData } from './index';
 import type { Formula, Cask } from '@/types';
 
 const FORMULA_API = 'https://formulae.brew.sh/api/formula.json';
@@ -55,24 +55,38 @@ export async function syncData(
     report('fetching-casks', 30, 'Fetching casks data...');
     const casks = await fetchCasks();
 
+    // Both fetches succeeded — replace local data atomically so a mid-write
+    // failure can't leave the user with a half-empty database.
     report('storing-formulae', 50, 'Storing formulae...');
-    await clearAllData();
-    
-    const BATCH_SIZE = 500;
-    for (let i = 0; i < formulae.length; i += BATCH_SIZE) {
-      const batch = formulae.slice(i, i + BATCH_SIZE);
-      await db.formulae.bulkPut(batch);
-      const progress = 50 + ((i / formulae.length) * 20);
-      report('storing-formulae', progress, `Storing formulae... (${Math.min(i + BATCH_SIZE, formulae.length)}/${formulae.length})`);
-    }
 
-    report('storing-casks', 70, 'Storing casks...');
-    for (let i = 0; i < casks.length; i += BATCH_SIZE) {
-      const batch = casks.slice(i, i + BATCH_SIZE);
-      await db.casks.bulkPut(batch);
-      const progress = 70 + ((i / casks.length) * 25);
-      report('storing-casks', progress, `Storing casks... (${Math.min(i + BATCH_SIZE, casks.length)}/${casks.length})`);
-    }
+    const BATCH_SIZE = 500;
+    await db.transaction('rw', db.formulae, db.casks, async () => {
+      await db.formulae.clear();
+      await db.casks.clear();
+
+      for (let i = 0; i < formulae.length; i += BATCH_SIZE) {
+        const batch = formulae.slice(i, i + BATCH_SIZE);
+        await db.formulae.bulkPut(batch);
+        const progress = 50 + ((i / formulae.length) * 20);
+        report(
+          'storing-formulae',
+          progress,
+          `Storing formulae... (${Math.min(i + BATCH_SIZE, formulae.length)}/${formulae.length})`
+        );
+      }
+
+      report('storing-casks', 70, 'Storing casks...');
+      for (let i = 0; i < casks.length; i += BATCH_SIZE) {
+        const batch = casks.slice(i, i + BATCH_SIZE);
+        await db.casks.bulkPut(batch);
+        const progress = 70 + ((i / casks.length) * 25);
+        report(
+          'storing-casks',
+          progress,
+          `Storing casks... (${Math.min(i + BATCH_SIZE, casks.length)}/${casks.length})`
+        );
+      }
+    });
 
     await setLastSyncTime(Date.now());
     report('done', 100, 'Sync completed');
