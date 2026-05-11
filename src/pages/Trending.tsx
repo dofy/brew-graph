@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { TrendingUp } from "lucide-react";
 import { PackageGrid } from "@/components/package/PackageGrid";
 import { TagDialog } from "@/components/common/TagDialog";
@@ -12,8 +13,26 @@ import type { PackageType } from "@/types";
 
 const LIMIT = 60;
 
+function parseType(raw: string | null): PackageType | "all" {
+  return raw === "formula" || raw === "cask" ? raw : "all";
+}
+
 export function Trending() {
-  const [type, setType] = useState<PackageType | "all">("all");
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const type = parseType(searchParams.get("type"));
+
+  const setType = useCallback(
+    (next: PackageType | "all") => {
+      const params = new URLSearchParams(searchParams);
+      if (next === "all") params.delete("type");
+      else params.set("type", next);
+      const qs = params.toString();
+      navigate(qs ? `/trending?${qs}` : "/trending", { replace: true });
+    },
+    [searchParams, navigate]
+  );
+
   const formulae = usePackageSnapshot((s) => s.formulae);
   const casks = usePackageSnapshot((s) => s.casks);
   const isLoaded = usePackageSnapshot((s) => s.isLoaded);
