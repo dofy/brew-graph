@@ -1,7 +1,9 @@
+import { useDeferredValue, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/db";
-import type { Formula, Cask, PackageType } from "@/types";
+import type { PackageType } from "@/types";
 import { useFavoriteStore } from "@/stores/useFavoriteStore";
+import { usePackageSnapshot } from "@/stores/usePackageSnapshot";
 
 export interface PackageItem {
   name: string;
@@ -14,42 +16,6 @@ export interface PackageItem {
   dependencies: string[];
   deprecated: boolean;
   disabled: boolean;
-}
-
-function formulaToPackage(formula: Formula): PackageItem {
-  return {
-    name: formula.name,
-    displayName: formula.name,
-    aliases: [...(formula.aliases || []), ...(formula.oldnames || [])],
-    type: "formula",
-    desc: formula.desc,
-    version: formula.versions.stable,
-    homepage: formula.homepage,
-    dependencies: formula.dependencies,
-    deprecated: formula.deprecated,
-    disabled: formula.disabled,
-  };
-}
-
-function caskToPackage(cask: Cask): PackageItem {
-  const displayName = cask.name?.[0] || cask.token;
-  return {
-    name: cask.token,
-    displayName,
-    aliases: [...(cask.name || []), ...(cask.old_tokens || [])].filter(
-      (n) => n && n !== cask.token
-    ),
-    type: "cask",
-    desc: cask.desc,
-    version: cask.version,
-    homepage: cask.homepage,
-    dependencies: [
-      ...(cask.depends_on?.formula || []),
-      ...(cask.depends_on?.cask || []),
-    ],
-    deprecated: cask.deprecated,
-    disabled: cask.disabled,
-  };
 }
 
 interface ScoredPackage {
@@ -187,132 +153,17 @@ export function useSearchPackages(
   limit = 30,
   offset = 0
 ) {
-  // Get store state with selectors for proper reactivity
-  const favorites = useFavoriteStore((state) => state.favorites);
-  const userTags = useFavoriteStore((state) => state.tags);
-
-  // Parse query for special syntax (#tag, *)
-  const parsed = parseSearchQuery(query);
-  const searchText = parsed.text;
-  const searchTags = parsed.tags;
-  const searchFavoritesOnly = parsed.favoritesOnly;
-
-  // Serialize favorites and tags size for dependency tracking
-  const favoritesSize = favorites.size;
-  const tagsSize = userTags.size;
-
-  return useLiveQuery(async () => {
-    const lowerQuery = searchText;
-    const scored: ScoredPackage[] = [];
-
-    // Combine URL tag filter with query tags
-    const requiredTags = tag ? [tag, ...searchTags] : searchTags;
-    // Combine URL favorites filter with query favorites
-    const requireFavorites = favoritesOnly || searchFavoritesOnly;
-
-    const matchesFilters = (
-      name: string,
-      pkgType: PackageType,
-      deprecated: boolean,
-      disabled: boolean
-    ) => {
-      // Check favorites
-      if (requireFavorites && !favorites.has(`${pkgType}:${name}`))
-        return false;
-
-      // Check all required tags
-      if (requiredTags.length > 0) {
-        const itemTags = userTags.get(`${pkgType}:${name}`);
-        for (const reqTag of requiredTags) {
-          // Check if any tag contains the search term (partial match)
-          const hasTag = itemTags
-            ? Array.from(itemTags).some((t) =>
-                t.toLowerCase().includes(reqTag.toLowerCase())
-              )
-            : false;
-          if (!hasTag) return false;
-        }
-      }
-
-      if (hideDeprecated && (deprecated || disabled)) return false;
-      return true;
-    };
-
-    if (type === "all" || type === "formula") {
-      const formulae = await db.formulae.toArray();
-      for (const formula of formulae) {
-        if (
-          !matchesFilters(
-            formula.name,
-            "formula",
-            formula.deprecated,
-            formula.disabled
-          )
-        ) {
-          continue;
-        }
-
-        if (!lowerQuery) {
-          scored.push({ pkg: formulaToPackage(formula), score: 0 });
-        } else {
-          const score = calculateMatchScore(
-            lowerQuery,
-            formula.name,
-            formula.desc,
-            [...(formula.aliases || []), ...(formula.oldnames || [])]
-          );
-          if (score > 0) {
-            scored.push({ pkg: formulaToPackage(formula), score });
-          }
-        }
-      }
-    }
-
-    if (type === "all" || type === "cask") {
-      const casks = await db.casks.toArray();
-      for (const cask of casks) {
-        if (
-          !matchesFilters(cask.token, "cask", cask.deprecated, cask.disabled)
-        ) {
-          continue;
-        }
-
-        if (!lowerQuery) {
-          scored.push({ pkg: caskToPackage(cask), score: 0 });
-        } else {
-          const score = calculateMatchScore(lowerQuery, cask.token, cask.desc, [
-            ...(cask.name || []),
-            ...(cask.old_tokens || []),
-          ]);
-          if (score > 0) {
-            scored.push({ pkg: caskToPackage(cask), score });
-          }
-        }
-      }
-    }
-
-    // Sort by score (descending), then by name (ascending) for same scores
-    scored.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.pkg.name.localeCompare(b.pkg.name);
-    });
-
-    return scored.slice(offset, offset + limit).map((s) => s.pkg);
-  }, [
-    searchText,
-    searchTags,
-    searchFavoritesOnly,
+  const result = useFilteredPackages(
+    query,
     type,
     tag,
     favoritesOnly,
-    hideDeprecated,
-    favorites,
-    userTags,
-    favoritesSize,
-    tagsSize,
-    limit,
-    offset,
-  ]);
+    hideDeprecated
+  );
+  return useMemo(
+    () => (result ? result.items.slice(offset, offset + limit) : result),
+    [result, offset, limit]
+  );
 }
 
 export function useTotalPackageCount(
@@ -321,27 +172,43 @@ export function useTotalPackageCount(
   tag: string | null,
   hideDeprecated: boolean
 ) {
-  // Get store state with selectors for proper reactivity
-  const favorites = useFavoriteStore((state) => state.favorites);
-  const userTags = useFavoriteStore((state) => state.tags);
+  const result = useFilteredPackages(query, type, tag, false, hideDeprecated);
+  return result?.items.length;
+}
 
-  // Parse query for special syntax (#tag, *)
-  const parsed = parseSearchQuery(query);
-  const searchText = parsed.text;
-  const searchTags = parsed.tags;
-  const searchFavoritesOnly = parsed.favoritesOnly;
+/**
+ * Single search/filter/score pipeline shared by list and count consumers.
+ * Returns `undefined` until the in-memory snapshot has loaded; `null`-ish
+ * states are kept compatible with the prior `useLiveQuery` contract.
+ */
+function useFilteredPackages(
+  query: string,
+  type: PackageType | "all",
+  tag: string | null,
+  favoritesOnly: boolean,
+  hideDeprecated: boolean
+): { items: PackageItem[] } | undefined {
+  const formulae = usePackageSnapshot((s) => s.formulae);
+  const casks = usePackageSnapshot((s) => s.casks);
+  const isLoaded = usePackageSnapshot((s) => s.isLoaded);
+  const snapshotVersion = usePackageSnapshot((s) => s.version);
 
-  // Serialize for dependency tracking
+  const favorites = useFavoriteStore((s) => s.favorites);
+  const userTags = useFavoriteStore((s) => s.tags);
   const favoritesSize = favorites.size;
   const tagsSize = userTags.size;
 
-  return useLiveQuery(async () => {
-    const lowerQuery = searchText;
-    let count = 0;
+  // Defer the query so very fast typing doesn't block input rendering.
+  const deferredQuery = useDeferredValue(query);
 
-    // Combine URL tag filter with query tags
+  return useMemo(() => {
+    if (!isLoaded) return undefined;
+
+    const parsed = parseSearchQuery(deferredQuery);
+    const lowerQuery = parsed.text;
+    const searchTags = parsed.tags;
     const requiredTags = tag ? [tag, ...searchTags] : searchTags;
-    const requireFavorites = searchFavoritesOnly;
+    const requireFavorites = favoritesOnly || parsed.favoritesOnly;
 
     const matchesFilters = (
       name: string,
@@ -349,19 +216,20 @@ export function useTotalPackageCount(
       deprecated: boolean,
       disabled: boolean
     ) => {
-      // Check favorites
-      if (requireFavorites && !favorites.has(`${pkgType}:${name}`))
-        return false;
+      if (requireFavorites && !favorites.has(`${pkgType}:${name}`)) return false;
 
-      // Check all required tags
       if (requiredTags.length > 0) {
         const itemTags = userTags.get(`${pkgType}:${name}`);
+        if (!itemTags) return false;
         for (const reqTag of requiredTags) {
-          const hasTag = itemTags
-            ? Array.from(itemTags).some((t) =>
-                t.toLowerCase().includes(reqTag.toLowerCase())
-              )
-            : false;
+          const lowerReq = reqTag.toLowerCase();
+          let hasTag = false;
+          for (const t of itemTags) {
+            if (t.toLowerCase().includes(lowerReq)) {
+              hasTag = true;
+              break;
+            }
+          }
           if (!hasTag) return false;
         }
       }
@@ -370,62 +238,47 @@ export function useTotalPackageCount(
       return true;
     };
 
+    const scored: ScoredPackage[] = [];
+
+    const pushIfMatch = (pkg: PackageItem) => {
+      if (!matchesFilters(pkg.name, pkg.type, pkg.deprecated, pkg.disabled)) {
+        return;
+      }
+      if (!lowerQuery) {
+        scored.push({ pkg, score: 0 });
+        return;
+      }
+      const score = calculateMatchScore(
+        lowerQuery,
+        pkg.name,
+        pkg.desc,
+        pkg.aliases
+      );
+      if (score > 0) scored.push({ pkg, score });
+    };
+
     if (type === "all" || type === "formula") {
-      const formulae = await db.formulae.toArray();
-      for (const formula of formulae) {
-        if (
-          !matchesFilters(
-            formula.name,
-            "formula",
-            formula.deprecated,
-            formula.disabled
-          )
-        ) {
-          continue;
-        }
-        if (!lowerQuery) {
-          count++;
-        } else {
-          const score = calculateMatchScore(
-            lowerQuery,
-            formula.name,
-            formula.desc,
-            [...(formula.aliases || []), ...(formula.oldnames || [])]
-          );
-          if (score > 0) count++;
-        }
-      }
+      for (const pkg of formulae) pushIfMatch(pkg);
     }
-
     if (type === "all" || type === "cask") {
-      const casks = await db.casks.toArray();
-      for (const cask of casks) {
-        if (
-          !matchesFilters(cask.token, "cask", cask.deprecated, cask.disabled)
-        ) {
-          continue;
-        }
-        if (!lowerQuery) {
-          count++;
-        } else {
-          const score = calculateMatchScore(
-            lowerQuery,
-            cask.token,
-            cask.desc,
-            [...(cask.name || []), ...(cask.old_tokens || [])]
-          );
-          if (score > 0) count++;
-        }
-      }
+      for (const pkg of casks) pushIfMatch(pkg);
     }
 
-    return count;
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.pkg.name.localeCompare(b.pkg.name);
+    });
+
+    return { items: scored.map((s) => s.pkg) };
   }, [
-    searchText,
-    searchTags,
-    searchFavoritesOnly,
+    isLoaded,
+    snapshotVersion,
+    formulae,
+    casks,
+    deferredQuery,
     type,
     tag,
+    favoritesOnly,
     hideDeprecated,
     favorites,
     userTags,

@@ -2,10 +2,14 @@ import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useSyncStore } from '@/stores/useSyncStore';
 import { useFavoriteStore } from '@/stores/useFavoriteStore';
+import { usePackageSnapshot } from '@/stores/usePackageSnapshot';
 
 export function SyncOverlay() {
   const { isSyncing, progress, needsSync, sync, checkSyncStatus } = useSyncStore();
   const { loadFromDB, isLoading: favoritesLoading } = useFavoriteStore();
+  const loadSnapshot = usePackageSnapshot((s) => s.load);
+  const reloadSnapshot = usePackageSnapshot((s) => s.reload);
+  const snapshotLoaded = usePackageSnapshot((s) => s.isLoaded);
 
   useEffect(() => {
     const init = async () => {
@@ -20,6 +24,18 @@ export function SyncOverlay() {
       sync();
     }
   }, [needsSync, isSyncing, sync]);
+
+  // Load the in-memory snapshot once data is available, and refresh it after
+  // a sync completes (covers both initial sync and user-triggered refresh).
+  useEffect(() => {
+    if (isSyncing) return;
+    if (needsSync) return;
+    if (!snapshotLoaded) {
+      loadSnapshot();
+    } else if (progress.stage === 'done') {
+      reloadSnapshot();
+    }
+  }, [isSyncing, needsSync, snapshotLoaded, progress.stage, loadSnapshot, reloadSnapshot]);
 
   if (!isSyncing && !favoritesLoading && !needsSync) {
     return null;
