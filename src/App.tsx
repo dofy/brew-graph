@@ -4,6 +4,7 @@ import { SearchDialog } from "@/components/search/SearchDialog";
 import { HotkeyProvider } from "@/components/common/HotkeyProvider";
 import { Home } from "@/pages/Home";
 import { Favorites } from "@/pages/Favorites";
+import { Trending } from "@/pages/Trending";
 import { Detail } from "@/pages/Detail";
 import { Tags } from "@/pages/Tags";
 import { TagDetail } from "@/pages/TagDetail";
@@ -16,6 +17,7 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="favorites" element={<Favorites />} />
+            <Route path="trending" element={<Trending />} />
             <Route path="tags" element={<Tags />} />
             <Route path="tags/:tagName" element={<TagDetail />} />
             <Route path=":type/:name" element={<Detail />} />

@@ -10,6 +10,7 @@ import {
   Tags,
   Settings2,
   Github,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -76,6 +77,12 @@ export function Header() {
           <Link to="/favorites">
             <Button variant="ghost" size="icon" title="Favorites (Shift+F)">
               <Heart className="h-4 w-4" />
+            </Button>
+          </Link>
+
+          <Link to="/trending">
+            <Button variant="ghost" size="icon" title="Trending">
+              <TrendingUp className="h-4 w-4" />
             </Button>
           </Link>
 
