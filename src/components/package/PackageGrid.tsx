@@ -1,6 +1,13 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
-import { Package, Box, Heart, AlertTriangle, Tag } from "lucide-react";
+import {
+  Package,
+  Box,
+  Heart,
+  AlertTriangle,
+  Tag,
+  TrendingUp,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +18,13 @@ import { useSearchStore } from "@/stores/useSearchStore";
 import { toast } from "sonner";
 import type { PackageItem } from "@/hooks/usePackages";
 import { cn } from "@/lib/utils";
+
+function formatInstallCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1_000)}k`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
 
 interface PackageGridProps {
   packages: PackageItem[] | undefined;
@@ -238,6 +252,15 @@ function PackageCard({
 
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>{pkg.dependencies.length} deps</span>
+            {pkg.installs30d ? (
+              <span
+                className="flex items-center gap-0.5"
+                title={`${pkg.installs30d.toLocaleString()} installs in last 30 days`}
+              >
+                <TrendingUp className="h-3 w-3" />
+                {formatInstallCount(pkg.installs30d)}
+              </span>
+            ) : null}
             {isSelected && <span className="text-primary">Enter ↵</span>}
           </div>
         </CardContent>

@@ -19,6 +19,7 @@ import {
   FileText,
   Info,
   Download,
+  TrendingUp,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,11 +36,17 @@ import { TagDialog } from "@/components/common/TagDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFormula, useCask } from "@/hooks/usePackages";
 import { useFavoriteStore } from "@/stores/useFavoriteStore";
+import { usePackageSnapshot } from "@/stores/usePackageSnapshot";
 import { useDetailHotkeys } from "@/hooks/useDetailHotkeys";
 import { useSEO, generatePackageJsonLd } from "@/hooks/useSEO";
 import type { PackageType, Formula, Cask } from "@/types";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+
+function formatInstalls(n: number | undefined): string {
+  if (!n) return "—";
+  return n.toLocaleString();
+}
 
 function DependencyLink({
   name,
@@ -191,6 +198,8 @@ function StatusBadges({
 
 function FormulaDetail({ formula }: { formula: Formula }) {
   const { toggleFavorite } = useFavoriteStore();
+  const analytics = usePackageSnapshot((s) => s.analytics);
+  const installs30d = analytics?.formula[formula.name];
   const installCommand = `brew install ${formula.name}`;
 
   useSEO({
@@ -343,6 +352,16 @@ function FormulaDetail({ formula }: { formula: Formula }) {
             <Separator />
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Installs (30d)
+              </span>
+              <span className="font-mono text-sm">
+                {formatInstalls(installs30d)}
+              </span>
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 Status
               </span>
@@ -470,6 +489,8 @@ function FormulaDetail({ formula }: { formula: Formula }) {
 
 function CaskDetail({ cask }: { cask: Cask }) {
   const { toggleFavorite } = useFavoriteStore();
+  const analytics = usePackageSnapshot((s) => s.analytics);
+  const installs30d = analytics?.cask[cask.token];
   const installCommand = `brew install --cask ${cask.token}`;
 
   useSEO({
@@ -601,6 +622,16 @@ function CaskDetail({ cask }: { cask: Cask }) {
                 Auto Updates
               </span>
               <span>{cask.auto_updates ? "Yes" : "No"}</span>
+            </div>
+            <Separator />
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Installs (30d)
+              </span>
+              <span className="font-mono text-sm">
+                {formatInstalls(installs30d)}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between items-center">

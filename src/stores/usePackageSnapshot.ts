@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { db } from "@/db";
 import type { Formula, Cask } from "@/types";
 import type { PackageItem } from "@/hooks/usePackages";
+import { getAnalytics, type AnalyticsSnapshot } from "@/db/sync";
 
 /**
  * In-memory mirror of the package catalogue, pre-converted to `PackageItem`
@@ -15,12 +16,26 @@ import type { PackageItem } from "@/hooks/usePackages";
 interface PackageSnapshotState {
   formulae: PackageItem[];
   casks: PackageItem[];
+  analytics: AnalyticsSnapshot | null;
   isLoaded: boolean;
   isLoading: boolean;
   version: number;
   load: () => Promise<void>;
   reload: () => Promise<void>;
   clear: () => void;
+}
+
+function applyAnalytics(
+  pkg: PackageItem,
+  analytics: AnalyticsSnapshot | null
+): PackageItem {
+  if (!analytics) return pkg;
+  const installs =
+    pkg.type === "formula"
+      ? analytics.formula[pkg.name] ?? 0
+      : analytics.cask[pkg.name] ?? 0;
+  if (installs <= 0) return pkg;
+  return { ...pkg, installs30d: installs };
 }
 
 function formulaToPackage(formula: Formula): PackageItem {
@@ -62,6 +77,7 @@ function caskToPackage(cask: Cask): PackageItem {
 export const usePackageSnapshot = create<PackageSnapshotState>((set, get) => ({
   formulae: [],
   casks: [],
+  analytics: null,
   isLoaded: false,
   isLoading: false,
   version: 0,
@@ -70,13 +86,19 @@ export const usePackageSnapshot = create<PackageSnapshotState>((set, get) => ({
     if (get().isLoaded || get().isLoading) return;
     set({ isLoading: true });
     try {
-      const [rawFormulae, rawCasks] = await Promise.all([
+      const [rawFormulae, rawCasks, analytics] = await Promise.all([
         db.formulae.toArray(),
         db.casks.toArray(),
+        getAnalytics(),
       ]);
       set({
-        formulae: rawFormulae.map(formulaToPackage),
-        casks: rawCasks.map(caskToPackage),
+        formulae: rawFormulae.map((f) =>
+          applyAnalytics(formulaToPackage(f), analytics)
+        ),
+        casks: rawCasks.map((c) =>
+          applyAnalytics(caskToPackage(c), analytics)
+        ),
+        analytics,
         isLoaded: true,
         isLoading: false,
         version: get().version + 1,
@@ -89,13 +111,17 @@ export const usePackageSnapshot = create<PackageSnapshotState>((set, get) => ({
 
   reload: async () => {
     set({ isLoading: true });
-    const [rawFormulae, rawCasks] = await Promise.all([
+    const [rawFormulae, rawCasks, analytics] = await Promise.all([
       db.formulae.toArray(),
       db.casks.toArray(),
+      getAnalytics(),
     ]);
     set({
-      formulae: rawFormulae.map(formulaToPackage),
-      casks: rawCasks.map(caskToPackage),
+      formulae: rawFormulae.map((f) =>
+        applyAnalytics(formulaToPackage(f), analytics)
+      ),
+      casks: rawCasks.map((c) => applyAnalytics(caskToPackage(c), analytics)),
+      analytics,
       isLoaded: true,
       isLoading: false,
       version: get().version + 1,
@@ -106,6 +132,7 @@ export const usePackageSnapshot = create<PackageSnapshotState>((set, get) => ({
     set({
       formulae: [],
       casks: [],
+      analytics: null,
       isLoaded: false,
       version: get().version + 1,
     }),

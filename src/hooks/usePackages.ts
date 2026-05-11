@@ -16,6 +16,8 @@ export interface PackageItem {
   dependencies: string[];
   deprecated: boolean;
   disabled: boolean;
+  /** Homebrew analytics: install count over the past 30 days. */
+  installs30d?: number;
 }
 
 interface ScoredPackage {
@@ -266,6 +268,11 @@ function useFilteredPackages(
 
     scored.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
+      // Same relevance score: order by recent install count (popularity)
+      // so e.g. an empty query lists the most-installed packages first.
+      const aInstalls = a.pkg.installs30d ?? 0;
+      const bInstalls = b.pkg.installs30d ?? 0;
+      if (bInstalls !== aInstalls) return bInstalls - aInstalls;
       return a.pkg.name.localeCompare(b.pkg.name);
     });
 
