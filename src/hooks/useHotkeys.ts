@@ -100,6 +100,13 @@ export function useGlobalHotkeys() {
     toast.success("Tags");
   });
 
+  // Shift+R: Go Trending (r = refresh, Shift+R = trending page)
+  useHotkeys("shift+r", () => {
+    if (isInputFocused() || isSearchOpen) return;
+    navigate("/trending");
+    toast.success("Trending");
+  });
+
   // ============ Settings/Actions ============
   // d: Toggle theme
   useHotkeys("d", () => {

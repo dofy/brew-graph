@@ -52,6 +52,7 @@
 | `Shift+H` | Go to Home      |
 | `Shift+F` | Go to Favorites |
 | `Shift+T` | Go to Tags      |
+| `Shift+R` | Go to Trending  |
 
 ### Settings
 

@@ -35,6 +35,7 @@ const shortcuts: { category: string; items: ShortcutItem[] }[] = [
       { keys: ["⇧", "H"], separator: "+", description: "Go to Home" },
       { keys: ["⇧", "F"], separator: "+", description: "Go to Favorites" },
       { keys: ["⇧", "T"], separator: "+", description: "Go to Tags" },
+      { keys: ["⇧", "R"], separator: "+", description: "Go to Trending" },
     ],
   },
   {
