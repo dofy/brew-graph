@@ -25,10 +25,12 @@ export function useGlobalHotkeys() {
   const { toggleTheme, togglePageWidth, pageWidth } = useSettingsStore();
   const { sync, isSyncing } = useSyncStore();
 
-  // Helper to update type filter
+  // Helper to update type filter on pages that support it (Home, Trending)
   const setTypeFilter = (type: "all" | "formula" | "cask") => {
-    // Only work on home page
-    if (location.pathname !== "/" && location.pathname !== "") return;
+    const path = location.pathname;
+    const isHome = path === "/" || path === "";
+    const isTrending = path === "/trending";
+    if (!isHome && !isTrending) return;
 
     const newParams = new URLSearchParams(searchParams);
     if (type === "all") {
@@ -36,8 +38,12 @@ export function useGlobalHotkeys() {
     } else {
       newParams.set("type", type);
     }
+    // Reset pagination when filter changes (Home only — Trending has no page param).
+    if (isHome) newParams.delete("page");
+
+    const base = isTrending ? "/trending" : "/";
     const queryString = newParams.toString();
-    navigate(queryString ? `/?${queryString}` : "/", { replace: true });
+    navigate(queryString ? `${base}?${queryString}` : base, { replace: true });
 
     const labels = { all: "All", formula: "Formulae", cask: "Casks" };
     toast.success(`Filter: ${labels[type]}`);
