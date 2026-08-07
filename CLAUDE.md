@@ -34,7 +34,7 @@ Three layers, intentionally split:
   - `useFavoriteStore` — favorites and user tags, mirrored to Dexie. Must call `loadFromDB()` on app boot before reads are valid.
   - `useSettingsStore`, `useSyncStore` — theme/width settings and sync progress.
 - **Dexie + `dexie-react-hooks`** (`useLiveQuery`) for reactive reads of package data — see `src/hooks/usePackages.ts`. These hooks **read from the Zustand favorites/tags maps** as part of their filter logic, so the live-query deps include `favoritesSize`/`tagsSize` to retrigger when the Map identity is replaced.
-- **URL state** via React Router 7 — routes in `src/App.tsx`: `/`, `/favorites`, `/tags`, `/tags/:tagName`, `/:type/:name` (where `type` is `formula` or `cask`).
+- **URL state** via React Router 7 — routes in `src/App.tsx`: `/`, `/favorites`, `/trending`, `/tags`, `/tags/:tagName`, `/:type/:name` (where `type` is `formula` or `cask`).
 
 ### Search
 
