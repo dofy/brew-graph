@@ -17,9 +17,9 @@ if (!existsSync(iconsDir)) {
 const svgPath = join(publicDir, "homebrew.svg");
 const svgBuffer = readFileSync(svgPath);
 
-// Keep the artwork inside the platform-safe area used by installed app icons.
-// The source SVG is cropped to a square, so rendering it edge-to-edge makes
-// the installed icon look oversized after the browser applies its own mask.
+// Keep the complete artwork inside the platform-safe area used by installed
+// app icons. The source SVG is portrait-oriented, so square `cover` resizing
+// would crop the top and bottom of the beer glass.
 const iconArtworkScale = 0.8;
 
 // Icon sizes to generate
@@ -45,7 +45,10 @@ for (const { size, name } of sizes) {
   const outputPath = join(iconsDir, name);
   const artworkSize = Math.round(size * iconArtworkScale);
   const artwork = await sharp(svgBuffer)
-    .resize(artworkSize, artworkSize)
+    .resize(artworkSize, artworkSize, {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
 
