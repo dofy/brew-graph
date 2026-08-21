@@ -17,6 +17,11 @@ if (!existsSync(iconsDir)) {
 const svgPath = join(publicDir, "homebrew.svg");
 const svgBuffer = readFileSync(svgPath);
 
+// Keep the artwork inside the platform-safe area used by installed app icons.
+// The source SVG is cropped to a square, so rendering it edge-to-edge makes
+// the installed icon look oversized after the browser applies its own mask.
+const iconArtworkScale = 0.8;
+
 // Icon sizes to generate
 const sizes = [
   { size: 16, name: "icon-16.png" },
@@ -38,8 +43,21 @@ console.log("Generating icons from homebrew.svg...\n");
 
 for (const { size, name } of sizes) {
   const outputPath = join(iconsDir, name);
-  await sharp(svgBuffer)
-    .resize(size, size)
+  const artworkSize = Math.round(size * iconArtworkScale);
+  const artwork = await sharp(svgBuffer)
+    .resize(artworkSize, artworkSize)
+    .png()
+    .toBuffer();
+
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: artwork, gravity: "center" }])
     .png()
     .toFile(outputPath);
   console.log(`✓ Generated ${name} (${size}x${size})`);
